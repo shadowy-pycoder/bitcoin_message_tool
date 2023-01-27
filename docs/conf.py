@@ -19,8 +19,8 @@
 
 # -- Project information -----------------------------------------------------
 
-project = 'bitcoin_message_signer'
-copyright = '2018, shadowy_pycoder'
+project = 'bitcoin_message_tool'
+copyright = '2023, shadowy_pycoder'
 author = 'shadowy_pycoder'
 
 # The short X.Y version
@@ -104,7 +104,7 @@ html_static_path = ['_static']
 # -- Options for HTMLHelp output ---------------------------------------------
 
 # Output file base name for HTML help builder.
-htmlhelp_basename = 'bitcoin_message_signerdoc'
+htmlhelp_basename = 'bitcoin_message_tooldoc'
 
 
 # -- Options for LaTeX output ------------------------------------------------
@@ -131,7 +131,7 @@ latex_elements = {
 # (source start file, target name, title,
 #  author, documentclass [howto, manual, or own class]).
 latex_documents = [
-    (master_doc, 'bitcoin_message_signer.tex', 'bitcoin_message_signer Documentation',
+    (master_doc, 'bitcoin_message_tool.tex', 'bitcoin_message_tool Documentation',
      'shadowy_pycoder', 'manual'),
 ]
 
@@ -141,7 +141,7 @@ latex_documents = [
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
 man_pages = [
-    (master_doc, 'bitcoin_message_signer', 'bitcoin_message_signer Documentation',
+    (master_doc, 'bitcoin_message_tool', 'bitcoin_message_tool Documentation',
      [author], 1)
 ]
 
@@ -152,8 +152,8 @@ man_pages = [
 # (source start file, target name, title, author,
 #  dir menu entry, description, category)
 texinfo_documents = [
-    (master_doc, 'bitcoin_message_signer', 'bitcoin_message_signer Documentation',
-     author, 'bitcoin_message_signer', 'Bitcoin message signing/verification tool',
+    (master_doc, 'bitcoin_message_tool', 'bitcoin_message_tool Documentation',
+     author, 'bitcoin_message_tool', 'Bitcoin message signing/verification tool',
      'Miscellaneous'),
 ]
 

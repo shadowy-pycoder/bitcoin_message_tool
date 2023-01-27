@@ -1,9 +1,9 @@
-.. bitcoin_message_signer documentation master file, created by
+.. bitcoin_message_tool documentation master file, created by
    sphinx-quickstart on Mon Nov 12 14:17:27 2018.
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-Welcome to bitcoin_message_signer's documentation!
+Welcome to bitcoin_message_tool's documentation!
 =======================================
 
 .. toctree::

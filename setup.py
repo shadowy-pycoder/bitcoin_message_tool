@@ -7,7 +7,7 @@ scriptFolder = os.path.dirname(os.path.realpath(__file__))
 os.chdir(scriptFolder)
 
 # Find version info from module (without importing the module):
-with open("src/bitcoin_message_signer/__init__.py", "r") as fileObj:
+with open("src/bitcoin_message_tool/__init__.py", "r") as fileObj:
     version = re.search(
         r'^__version__\s*=\s*[\'"]([^\'"]*)[\'"]', fileObj.read(), re.MULTILINE
     ).group(1)
@@ -17,9 +17,9 @@ with io.open("README.md", encoding="utf-8") as fileObj:
     long_description = fileObj.read()
 
 setup(
-    name="bitcoin_message_signer",
+    name="bitcoin_message_tool",
     version=version,
-    url="https://github.com/shadowy_pycoder/bitcoin_message_signer",
+    url="https://github.com/shadowy_pycoder/bitcoin_message_tool",
     author="shadowy_pycoder",
     author_email="shadowy_pycoder@example.com",
     description=("""Bitcoin message signing/verification tool"""),
