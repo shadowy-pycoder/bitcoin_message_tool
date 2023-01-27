@@ -400,20 +400,19 @@ def sign_message(wif: str, addr_type: str, message: str, /, *, deterministic=Fal
     s = sig.s.to_bytes(32, 'big')
     for header in headers[ver]:
         signature = base64.b64encode(header + r + s).decode('utf-8')
-        verified = verify_message(address, message, signature)
+        verified, _, _ = verify_message(address, message, signature)
         if verified:
             return address, message, signature
     raise SignatureError('Invalid signature parameters')
 
 
-def bitcoin_message(wif, addr_type: str, message: str, /, *, deterministic=False) -> None:
-    addr, msg, sig = sign_message(wif, addr_type, message, deterministic=deterministic)
+def bitcoin_message(address, message: str, signature: str, /) -> None:
     print('-----BEGIN BITCOIN SIGNED MESSAGE-----')
-    print(msg)
+    print(message)
     print('-----BEGIN BITCOIN SIGNATURE-----')
-    print(addr)
+    print(address)
     print()
-    print(sig)
+    print(signature)
     print('-----END BITCOIN SIGNATURE-----')
 
 
@@ -456,7 +455,6 @@ def verify_message(address: str, message: str, signature: str, /) -> bool:
     if ver in headers[0]:
         pubkey = create_pubkey(raw_pubkey, uncompressed=True)
         addr = create_address(pubkey)
-        return addr == address
     pubkey = create_pubkey(raw_pubkey)
     if ver in headers[1]:
         addr = create_address(pubkey)
@@ -466,7 +464,9 @@ def verify_message(address: str, message: str, signature: str, /) -> bool:
         addr = create_native_segwit(pubkey)
     elif ver in headers[4]:
         raise NotImplementedError()
-    return addr == address
+    if addr == address:
+        return True, pubkey.hex(), f'Message verified to be from {address}'
+    return False, pubkey.hex(), 'Message failed to verify'
 
 
 def main():
@@ -477,34 +477,70 @@ def main():
     sign_parser = subparsers.add_parser('sign')
     sign_parser.set_defaults(cmd='sign')
     sign_group = sign_parser.add_argument_group(title='Sign messsage')
-    sign_group.add_argument('-p', '--privkey', required=True, help='private key in wallet import format (WIF)')
-    sign_group.add_argument('-a', '--addr_type', required=True,
-                            choices=['p2pkh', 'p2wpkh-p2sh', 'p2wpkh'], help='type of bitcoin address')
-    sign_group.add_argument('-m', '--message', required=True, help='Message to sign (needs to ne enclosed in quotes)')
-    sign_group.add_argument('-d', '--deterministic', action='store_true', help='sign deterministtically (RFC6979)')
-    sign_group.add_argument('-v', '--verbose', action='store_true', help='print full message')
+    sign_group.add_argument('-p',
+                            '--privkey',
+                            required=True,
+                            help='private key in wallet import format (WIF)')
+    sign_group.add_argument('-a',
+                            '--addr_type',
+                            required=True,
+                            choices=['p2pkh', 'p2wpkh-p2sh', 'p2wpkh'],
+                            help='type of bitcoin address')
+    sign_group.add_argument('-m',
+                            '--message',
+                            required=True,
+                            help='Message to sign (needs to be enclosed in quotes)')
+    sign_group.add_argument('-d',
+                            '--deterministic',
+                            action='store_true',
+                            help='sign deterministtically (RFC6979)')
+    sign_group.add_argument('-v',
+                            '--verbose',
+                            action='store_true',
+                            help='print prettified message')
     verify_parser = subparsers.add_parser('verify')
     verify_parser.set_defaults(cmd='verify')
     verify_group = verify_parser.add_argument_group(title='Verify messsage')
-    verify_group.add_argument('-a', '--address', required=True, help='specify bitcoin address')
-    verify_group.add_argument('-m', '--message', required=True, help='Message to sign (needs to ne enclosed in quotes)')
-    verify_group.add_argument('-s', '--signature', required=True, help='bitcoin signature in base64 format')
+    verify_group.add_argument('-a',
+                              '--address',
+                              required=True,
+                              help='specify bitcoin address')
+    verify_group.add_argument('-m',
+                              '--message',
+                              required=True,
+                              help='Message to sign (needs to be enclosed in quotes)')
+    verify_group.add_argument('-s',
+                              '--signature',
+                              required=True,
+                              help='bitcoin signature in base64 format')
+    verify_group.add_argument('-v',
+                              '--verbose',
+                              action='store_true',
+                              help='print full message')
+    verify_group.add_argument('-r',
+                              '--recpub',
+                              action='store_true',
+                              help='recover public key')
 
     args = parser.parse_args()
     if args.cmd == 'sign':
         if args.verbose:
-            bitcoin_message(args.privkey,
-                            args.addr_type,
-                            args.message,
-                            deterministic=args.deterministic)
+            bitcoin_message(*sign_message(args.privkey,
+                                          args.addr_type,
+                                          args.message,
+                                          deterministic=args.deterministic))
         else:
-            print(sign_message(args.privkey,
-                               args.addr_type,
-                               args.message,
-                               deterministic=args.deterministic)[2])
+            print('Bitcoin address: {}\nMessage: {}\nSignature: {}'.format(*sign_message(args.privkey,
+                                                                                         args.addr_type,
+                                                                                         args.message,
+                                                                                         deterministic=args.deterministic)))
     elif args.cmd == 'verify':
-        print(verify_message(args.address, args.message, args.signature))
-    # print(subparsers)
+        verified, pubkey, result = verify_message(args.address, args.message, args.signature)
+        print(verified)
+        if args.verbose:
+            print(result)
+        if args.recpub:
+            print(pubkey)
 
 
 if __name__ == '__main__':
