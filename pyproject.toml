@@ -1,0 +1,21 @@
+[tool.poetry]
+name = "bictoin-message-signer"
+version = "0.1.0"
+description = "Bitcoin message signing/verification tool"
+authors = ["shadowy-pycoder <shadowy-pycoder@example.com>"]
+readme = "README.md"
+packages = [{include = "bictoin_message_signer"}]
+
+[tool.poetry.dependencies]
+python = "^3.10"
+ripemd-hash = "^1.0.0"
+base58 = "^2.1.1"
+bech32 = "^1.2.0"
+
+
+[tool.poetry.group.dev.dependencies]
+autopep8 = "^2.0.1"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
