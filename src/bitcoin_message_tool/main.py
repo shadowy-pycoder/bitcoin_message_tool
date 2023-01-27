@@ -1,3 +1,4 @@
+import argparse
 import base64
 import hmac
 import sys
@@ -468,16 +469,43 @@ def verify_message(address: str, message: str, signature: str, /) -> bool:
     return addr == address
 
 
-def main(args):
-    if len(args) < 4:
-        print(f'app.py <private key> <addr_type> <deterministic> <message>')
-        sys.exit(1)
-    privkey = args[0]
-    addr_type = args[1]
-    message = ' '.join(word for word in args[3:])
-    deterministic = args[2]
-    bitcoin_message(privkey, addr_type, message, deterministic=deterministic)
+def main():
+    parser = argparse.ArgumentParser(
+        prog='python3 main.py',
+        description='Bitcoin message signing/verification tool')
+    subparsers = parser.add_subparsers()
+    sign_parser = subparsers.add_parser('sign')
+    sign_parser.set_defaults(cmd='sign')
+    sign_group = sign_parser.add_argument_group(title='Sign messsage')
+    sign_group.add_argument('-p', '--privkey', required=True, help='private key in wallet import format (WIF)')
+    sign_group.add_argument('-a', '--addr_type', required=True,
+                            choices=['p2pkh', 'p2wpkh-p2sh', 'p2wpkh'], help='type of bitcoin address')
+    sign_group.add_argument('-m', '--message', required=True, help='Message to sign (needs to ne enclosed in quotes)')
+    sign_group.add_argument('-d', '--deterministic', action='store_true', help='sign deterministtically (RFC6979)')
+    sign_group.add_argument('-v', '--verbose', action='store_true', help='print full message')
+    verify_parser = subparsers.add_parser('verify')
+    verify_parser.set_defaults(cmd='verify')
+    verify_group = verify_parser.add_argument_group(title='Verify messsage')
+    verify_group.add_argument('-a', '--address', required=True, help='specify bitcoin address')
+    verify_group.add_argument('-m', '--message', required=True, help='Message to sign (needs to ne enclosed in quotes)')
+    verify_group.add_argument('-s', '--signature', required=True, help='bitcoin signature in base64 format')
+
+    args = parser.parse_args()
+    if args.cmd == 'sign':
+        if args.verbose:
+            bitcoin_message(args.privkey,
+                            args.addr_type,
+                            args.message,
+                            deterministic=args.deterministic)
+        else:
+            print(sign_message(args.privkey,
+                               args.addr_type,
+                               args.message,
+                               deterministic=args.deterministic)[2])
+    elif args.cmd == 'verify':
+        print(verify_message(args.address, args.message, args.signature))
+    # print(subparsers)
 
 
 if __name__ == '__main__':
-    main(sys.argv[1:])
+    main()
