@@ -59,8 +59,6 @@ headers = [[b'\x1b', b'\x1c', b'\x1d', b'\x1e'],
            [b'\x27', b'\x29', b'\x28', b'\x2a'],
            [b'\x2b', b'\x2c', b'\x2d', b'\x2e']]
 
-addresses = ['p2pkh', 'p2wpkh-p2sh', 'p2wpkh']
-
 
 class BitcoinMessageError(Exception):
     """Base exception for PieWallet"""
@@ -373,7 +371,7 @@ def sign(privkey: int, msg: int, /) -> Signature:
 
 def derive_address(pubkey, addr_type: str, uncompressed=False) -> tuple[str, int]:
     if uncompressed and addr_type != 'p2pkh':
-        raise SignatureError
+        raise PrivateKeyError('Need WIF-compressed private key for this address type:', addr_type)
     elif uncompressed:
         return create_address(pubkey), 0
     elif addr_type.lower() == 'p2pkh':
@@ -383,7 +381,7 @@ def derive_address(pubkey, addr_type: str, uncompressed=False) -> tuple[str, int
     elif addr_type.lower() == 'p2wpkh':
         return create_native_segwit(pubkey), 3
     else:
-        raise SignatureError
+        raise SignatureError('Invalid address type')
 
 
 def sign_message(wif: str, addr_type: str, message: str, /, *, deterministic=False) -> tuple[str, ...]:
@@ -404,7 +402,7 @@ def sign_message(wif: str, addr_type: str, message: str, /, *, deterministic=Fal
         verified = verify_message(address, message, signature)
         if verified:
             return address, message, signature
-    raise SignatureError
+    raise SignatureError('Invalid signature parameters')
 
 
 def bitcoin_message(wif, addr_type: str, message: str, /, *, deterministic=False) -> None:
@@ -422,12 +420,13 @@ def verify_message(address: str, message: str, signature: str, /) -> bool:
     dsig = base64.b64decode(signature)
     if len(dsig) != 65:
         raise SignatureError('Signature must be 65 bytes long:', len(dsig))
-    ver = dsig[:1]
-    m_bytes = msg_magic(message)
-    z = int.from_bytes(double_sha256(m_bytes), 'big')
     header, r, s = dsig[0], int.from_bytes(dsig[1:33], 'big'), int.from_bytes(dsig[33:], 'big')
     if header < 27 or header > 46:
         raise SignatureError('Header byte out of range:', header)
+    if r >= secp256k1.n_curve or r == 0:
+        raise SignatureError('r-value out of range:', r)
+    if s >= secp256k1.n_curve or s == 0:
+        raise SignatureError('s-value out of range:', s)
     if header >= 43:
         header -= 16
     if header >= 39:
@@ -444,6 +443,9 @@ def verify_message(address: str, message: str, signature: str, /) -> bool:
     if is_odd(beta - recid):
         y = secp256k1.p_curve - beta
     R = Point(x, y)
+    ver = dsig[:1]
+    m_bytes = msg_magic(message)
+    z = int.from_bytes(double_sha256(m_bytes), 'big')
     e = (-z) % secp256k1.n_curve
     inv_r = mod_inverse(r, secp256k1.n_curve)
     p = ec_mul(s, R)
@@ -463,8 +465,6 @@ def verify_message(address: str, message: str, signature: str, /) -> bool:
         addr = create_native_segwit(pubkey)
     elif ver in headers[4]:
         raise NotImplementedError()
-    else:
-        raise SignatureError('Header byte out of range:', header)
     return addr == address
 
 
