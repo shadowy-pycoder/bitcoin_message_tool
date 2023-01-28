@@ -1,5 +1,128 @@
+"""
+Bitcoin Message Tool by shadowy-pycoder 2023
+A lightweight CLI tool for signing and verification of bitcoin messages.
+Bitcoin message is the most straightforward and natural way to prove ownership over
+a given address without revealing any confidential information.
+
+Usage:
+
+Message signing
+
+python main.py sign -h
+usage: python3 main.py sign [-h] -p -a {p2pkh,p2wpkh-p2sh,p2wpkh} -m [MESSAGE ...] [-d] [-v]
+
+options:
+  -h, --help            show this help message and exit
+
+Sign messsage:
+  -p, --privkey         private key in wallet import format (WIF)
+  -a {p2pkh,p2wpkh-p2sh,p2wpkh}, --addr_type {p2pkh,p2wpkh-p2sh,p2wpkh}
+                        type of bitcoin address
+  -m [MESSAGE ...], --message [MESSAGE ...]
+                        Message to sign
+  -d, --deterministic   sign deterministtically (RFC6979)
+  -v, --verbose         print prettified message
+
+$python main.py sign -p -a addr_type -m message [, -d -v]
+
+Example 1:
+
+$python main.py sign -p -a p2pkh -m message ECDSA is the most fun I have ever experienced
+
+PrivateKey(WIF): <insert private key here>
+
+Output:
+
+Bitcoin address: 175A5YsPUdM71mnNCC3i8faxxYJgBonjWL
+Message: ECDSA is the most fun I have ever experienced
+Signature: IBuc5GXSJCr6m7KevsBAoCiX8ToOjW2CDZMr6PCEbiHwQJ237LZTj/REbDHI1/yelY6uBWEWXiOWoGnajlgvO/A=
+
+Example 2:
+
+$python main.py sign -p -a p2pkh -m message ECDSA is the most fun I have ever experienced -d
+
+PrivateKey(WIF): <insert private key here>
+
+Output:
+
+Bitcoin address: 175A5YsPUdM71mnNCC3i8faxxYJgBonjWL
+Message: ECDSA is the most fun I have ever experienced
+Signature: HyiLDcQQ1p2bKmyqM0e5oIBQtKSZds4kJQ+VbZWpr0kYA6Qkam2MlUeTr+lm1teUGHuLapfa43JjyrRqdSA0pxs=
+
+Example 3:
+
+$python main.py sign -p -a p2pkh -m message ECDSA is the most fun I have ever experienced -d -v
+
+PrivateKey(WIF): <insert private key here>
+
+Ouput:
+
+-----BEGIN BITCOIN SIGNED MESSAGE-----
+ECDSA is the most fun I have ever experienced
+-----BEGIN BITCOIN SIGNATURE-----
+175A5YsPUdM71mnNCC3i8faxxYJgBonjWL
+
+HyiLDcQQ1p2bKmyqM0e5oIBQtKSZds4kJQ+VbZWpr0kYA6Qkam2MlUeTr+lm1teUGHuLapfa43JjyrRqdSA0pxs=
+-----END BITCOIN SIGNATURE-----
+
+
+Messsage verification
+
+python main.py verify -h
+usage: python3 main.py verify [-h] -a ADDRESS -m [MESSAGE ...] -s SIGNATURE [-v] [-r]
+
+options:
+  -h, --help            show this help message and exit
+
+Verify messsage:
+  -a ADDRESS, --address ADDRESS
+                        specify bitcoin address
+  -m [MESSAGE ...], --message [MESSAGE ...]
+                        Message to verify
+  -s SIGNATURE, --signature SIGNATURE
+                        bitcoin signature in base64 format
+  -v, --verbose         print full message
+  -r, --recpub          recover public key
+
+Example 1:
+
+python main.py verify -a 175A5YsPUdM71mnNCC3i8faxxYJgBonjWL \
+> -m ECDSA is the most fun I have ever experienced \
+> -s HyiLDcQQ1p2bKmyqM0e5oIBQtKSZds4kJQ+VbZWpr0kYA6Qkam2MlUeTr+lm1teUGHuLapfa43JjyrRqdSA0pxs=
+
+Output:
+
+True
+
+Example 2:
+
+python main.py verify -a 175A5YsPUdM71mnNCC3i8faxxYJgBonjWL \
+> -m ECDSA is the most fun I have ever experienced \
+> -s HyiLDcQQ1p2bKmyqM0e5oIBQtKSZds4kJQ+VbZWpr0kYA6Qkam2MlUeTr+lm1teUGHuLapfa43JjyrRqdSA0pxs= \
+> -v
+
+Output:
+
+True
+Message verified to be from 175A5YsPUdM71mnNCC3i8faxxYJgBonjWL
+
+Example3:
+
+python main.py verify -a 175A5YsPUdM71mnNCC3i8faxxYJgBonjWL \
+> -m ECDSA is the most fun I have ever experienced \
+> -s HyiLDcQQ1p2bKmyqM0e5oIBQtKSZds4kJQ+VbZWpr0kYA6Qkam2MlUeTr+lm1teUGHuLapfa43JjyrRqdSA0pxs= \
+> --recpub
+
+Output:
+
+True
+024aeaf55040fa16de37303d13ca1dde85f4ca9baa36e2963a27a1c0c1165fe2b1
+
+"""
+
 import argparse
 import base64
+import getpass
 import hmac
 import sys
 from secrets import randbelow
@@ -11,30 +134,22 @@ import bech32  # type: ignore
 from ripemd.ripemd160 import ripemd160  # type: ignore
 
 
-P_CURVE = 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEFFFFFC2F
-N_CURVE = 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364141
-A_CURVE = 0
-B_CURVE = 7
-GEN_POINT = (0x79BE667EF9DCBBAC55A06295CE870B07029BFCDB2DCE28D959F2815B16F81798,
-             0x483ADA7726A3C4655DA4FBFC0E1108A8FD17B448A68554199C47D08FFB10D4B8)
-
-
 class Point(NamedTuple):
-    '''Point on an elliptic curve'''
+    """Point on elliptic curve"""
     x: int
     y: int
 
 
 class JacobianPoint(NamedTuple):
+    """Point on elliptic curve in jacobian coordinates"""
+    # https://en.wikipedia.org/wiki/Jacobian_curve
     x: int
     y: int
     z: int
 
 
 class EllipticCurve(NamedTuple):
-    '''
-    Elliptic curve with all the parameters to define it.
-    '''
+    """Elliptic curve with all the parameters to define it."""
     p_curve: int
     n_curve: int
     a_curve: int
@@ -43,26 +158,14 @@ class EllipticCurve(NamedTuple):
 
 
 class Signature(NamedTuple):
+    """Elliptic curve digital signature"""
+    # https://en.wikipedia.org/wiki/Elliptic_Curve_Digital_Signature_Algorithm
     r: int
     s: int
 
 
-secp256k1 = EllipticCurve(p_curve=P_CURVE, n_curve=N_CURVE,
-                          a_curve=A_CURVE, b_curve=B_CURVE, gen_point=JacobianPoint(x=GEN_POINT[0], y=GEN_POINT[1], z=1))
-
-IDENTITY_POINT = JacobianPoint(x=P_CURVE, y=0, z=1)
-POW_2_256_M1 = 2 ** 256 - 1
-
-precomputes: list[JacobianPoint] = []
-headers = [[b'\x1b', b'\x1c', b'\x1d', b'\x1e'],
-           [b'\x1f', b'\x1f', b'\x20', b'\x22'],
-           [b'\x23', b'\x24', b'\x25', b'\x26'],
-           [b'\x27', b'\x29', b'\x28', b'\x2a'],
-           [b'\x2b', b'\x2c', b'\x2d', b'\x2e']]
-
-
 class BitcoinMessageError(Exception):
-    """Base exception for PieWallet"""
+    """Base exception for Bitcoin Message Tool"""
 
 
 class PrivateKeyError(BitcoinMessageError):
@@ -70,11 +173,41 @@ class PrivateKeyError(BitcoinMessageError):
 
 
 class PointError(BitcoinMessageError):
-    """Point is not on an elliptic curve"""
+    """Point is not on elliptic curve"""
 
 
 class SignatureError(BitcoinMessageError):
     """Invalid ECDSA signature parameters"""
+
+
+class PrivateKey(argparse.Action):
+    """Make private keys not appear in CLI"""
+    # https://stackoverflow.com/questions/29948567/how-to-suppress-the-display-of-passwords/29948740#29948740
+
+    def __call__(self, parser, namespace, values, option_string):
+        values = getpass.getpass(prompt='PrivateKey(WIF): ')
+        setattr(namespace, self.dest, values)
+
+
+P_CURVE = 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEFFFFFC2F
+N_CURVE = 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364141
+A_CURVE = 0
+B_CURVE = 7
+GEN_POINT = (0x79BE667EF9DCBBAC55A06295CE870B07029BFCDB2DCE28D959F2815B16F81798,
+             0x483ADA7726A3C4655DA4FBFC0E1108A8FD17B448A68554199C47D08FFB10D4B8)
+IDENTITY_POINT = JacobianPoint(x=P_CURVE, y=0, z=1)
+POW_2_256_M1 = 2 ** 256 - 1
+
+secp256k1 = EllipticCurve(p_curve=P_CURVE, n_curve=N_CURVE,
+                          a_curve=A_CURVE, b_curve=B_CURVE, gen_point=JacobianPoint(x=GEN_POINT[0], y=GEN_POINT[1], z=1))
+
+
+precomputes: list[JacobianPoint] = []
+headers = [[b'\x1b', b'\x1c', b'\x1d', b'\x1e'],
+           [b'\x1f', b'\x1f', b'\x20', b'\x22'],
+           [b'\x23', b'\x24', b'\x25', b'\x26'],
+           [b'\x27', b'\x29', b'\x28', b'\x2a'],
+           [b'\x2b', b'\x2c', b'\x2d', b'\x2e']]
 
 
 def double_sha256(b: bytes) -> bytes:
@@ -286,6 +419,21 @@ def msg_magic(message: str) -> bytes:
 
 
 def signed(privkey: int, msg: int, k: int) -> Signature | None:
+    """Calculate r and s values of a signature
+
+
+    Just a helper function that should not be used directly
+
+
+
+    Args:
+
+    privkey - random integer
+
+    msg - hash of a signature (usually double sha256 of a message with 'msg magic' applied)
+
+    k - nonce that comes from random (SystemRandom) or pseudorandom source (RFC6979)
+    """
     if not valid_key(k):
         return None
     # when working with private keys, standard multiplication is used
@@ -331,23 +479,31 @@ def bits_to_oct(b: bytes, q: int, qlen: int, rolen: int) -> bytes:
 
 
 def rfc_sign(x: int, msg: int, q: int) -> Signature:
+    # https://www.rfc-editor.org/rfc/rfc6979 section 3.2.
     qlen = q.bit_length()
     qolen = qlen >> 3
     rolen = qlen + 7 >> 3
+    # step a is omitted since we already have a hash of a message
     h1 = msg.to_bytes(32, 'big')
+    # step b
     V = b'\x01' * 32
+    # step c
     K = b'\x00' * 32
+    # step d
     m1 = b'\x00' + int_to_oct(x, rolen) + bits_to_oct(h1, q, qlen, rolen)
     m2 = b'\x01' + int_to_oct(x, rolen) + bits_to_oct(h1, q, qlen, rolen)
-
     K_ = hmac.new(K, digestmod=sha256)
     K_.update(V + m1)
     K = K_.digest()
+    # step e
     V = hmac.new(K, V, digestmod=sha256).digest()
+    # step f
     K_ = hmac.new(K, digestmod=sha256)
     K_.update(V + m2)
     K = K_.digest()
+    # step g
     V = hmac.new(K, V, digestmod=sha256).digest()
+    # step h
     while True:
         T = b''
         while len(T) < qolen:
@@ -356,6 +512,7 @@ def rfc_sign(x: int, msg: int, q: int) -> Signature:
         k = bits_to_int(T, qlen)
         if (sig := signed(x, msg, k)) is not None:
             return sig
+        # if k was invalid (sig is None), continue with algorithm
         K_ = hmac.new(K, digestmod=sha256)
         K_.update(V + b'\x00')
         K = K_.digest()
@@ -386,6 +543,24 @@ def derive_address(pubkey, addr_type: str, uncompressed=False) -> tuple[str, int
 
 
 def sign_message(wif: str, addr_type: str, message: str, /, *, deterministic=False) -> tuple[str, ...]:
+    """
+    Sign message with private key (WIF) and specified address type
+
+    Args:
+
+    wif - private key in compressed or uncompressed format. 
+    Compressed private key will produce compressed public key and address.
+    Uncompressed private key will only produce one address type - uncompressed legacy address
+
+    addr_type - specify which address type you want to use to produce signature. 
+    Ir can be either p2pkh (compressed and uncompressed), p2wpkh-p2sh or p2wpkh (only compressed).
+
+    message - string that will be used for signing
+
+    deterministic - if you want your signatures be produced deterministically, set this flag to True,
+    and each unique combination of private key and message will yield only one signature 
+
+    """
     m_bytes = msg_magic(message)
     msg = int.from_bytes(double_sha256(m_bytes), 'big')
     privkey, uncompressed = to_int(wif)
@@ -416,8 +591,12 @@ def bitcoin_message(address, message: str, signature: str, /) -> None:
     print('-----END BITCOIN SIGNATURE-----')
 
 
-def verify_message(address: str, message: str, signature: str, /) -> bool:
-    dsig = base64.b64decode(signature)
+def verify_message(address: str, message: str, signature: str, /) -> tuple[bool, str, str]:
+    """ Verify signature with address and message """
+    try:
+        dsig = base64.b64decode(signature)
+    except base64.binascii.Error:
+        raise SignatureError('Failed to decode signature')
     if len(dsig) != 65:
         raise SignatureError('Signature must be 65 bytes long:', len(dsig))
     header, r, s = dsig[0], int.from_bytes(dsig[1:33], 'big'), int.from_bytes(dsig[33:], 'big')
@@ -479,6 +658,9 @@ def main():
     sign_group = sign_parser.add_argument_group(title='Sign messsage')
     sign_group.add_argument('-p',
                             '--privkey',
+                            action=PrivateKey,
+                            dest='privkey',
+                            nargs=0,
                             required=True,
                             help='private key in wallet import format (WIF)')
     sign_group.add_argument('-a',
@@ -488,8 +670,9 @@ def main():
                             help='type of bitcoin address')
     sign_group.add_argument('-m',
                             '--message',
+                            nargs='*',
                             required=True,
-                            help='Message to sign (needs to be enclosed in quotes)')
+                            help='Message to sign')
     sign_group.add_argument('-d',
                             '--deterministic',
                             action='store_true',
@@ -507,8 +690,9 @@ def main():
                               help='specify bitcoin address')
     verify_group.add_argument('-m',
                               '--message',
+                              nargs='*',
                               required=True,
-                              help='Message to sign (needs to be enclosed in quotes)')
+                              help='Message to verify')
     verify_group.add_argument('-s',
                               '--signature',
                               required=True,
@@ -524,18 +708,21 @@ def main():
 
     args = parser.parse_args()
     if args.cmd == 'sign':
+        privkey = args.privkey
+        message = ' '.join(word for word in args.message)
         if args.verbose:
-            bitcoin_message(*sign_message(args.privkey,
+            bitcoin_message(*sign_message(privkey,
                                           args.addr_type,
-                                          args.message,
+                                          message,
                                           deterministic=args.deterministic))
         else:
             print('Bitcoin address: {}\nMessage: {}\nSignature: {}'.format(*sign_message(args.privkey,
                                                                                          args.addr_type,
-                                                                                         args.message,
+                                                                                         message,
                                                                                          deterministic=args.deterministic)))
     elif args.cmd == 'verify':
-        verified, pubkey, result = verify_message(args.address, args.message, args.signature)
+        message = ' '.join(word for word in args.message)
+        verified, pubkey, result = verify_message(args.address, message, args.signature)
         print(verified)
         if args.verbose:
             print(result)
