@@ -426,8 +426,9 @@ def varint(length: int) -> bytes:
         raise SignatureError(f'Message is too lengthy: {length}')
 
 
-def msg_magic(message: str) -> bytes:
-    return b'\x18Bitcoin Signed Message:\n' + varint(len(message)) + message.encode('utf-8')
+def msg_magic(msg: str) -> bytes:
+    message = msg.encode('utf-8')
+    return b'\x18Bitcoin Signed Message:\n' + varint(len(message)) + message
 
 
 def signed(privkey: int, msg: int, k: int) -> Signature | None:
