@@ -27,7 +27,7 @@ $python main.py sign -p -a addr_type -m message [, -d -v]
 
 Example 1:
 
-$python main.py sign -p -a p2pkh -m message ECDSA is the most fun I have ever experienced
+$python main.py sign -p -a p2pkh -m ECDSA is the most fun I have ever experienced
 
 PrivateKey(WIF): <insert private key here>
 
@@ -39,7 +39,7 @@ Signature: IBuc5GXSJCr6m7KevsBAoCiX8ToOjW2CDZMr6PCEbiHwQJ237LZTj/REbDHI1/yelY6uB
 
 Example 2:
 
-$python main.py sign -p -a p2pkh -m message ECDSA is the most fun I have ever experienced -d
+$python main.py sign -p -a p2pkh -m ECDSA is the most fun I have ever experienced -d
 
 PrivateKey(WIF): <insert private key here>
 
@@ -51,7 +51,7 @@ Signature: HyiLDcQQ1p2bKmyqM0e5oIBQtKSZds4kJQ+VbZWpr0kYA6Qkam2MlUeTr+lm1teUGHuLa
 
 Example 3:
 
-$python main.py sign -p -a p2pkh -m message ECDSA is the most fun I have ever experienced -d -v
+$python main.py sign -p -a p2pkh -m ECDSA is the most fun I have ever experienced -d -v
 
 PrivateKey(WIF): <insert private key here>
 
@@ -275,7 +275,10 @@ def to_int(wif: str, /) -> tuple[int, bool]:
     """Convert WIF private key to integer"""
     if not isinstance(wif, str):
         raise PrivateKeyError('must be in WIF format')
-    version, privkey, checksum = to_bytes(wif)
+    try:
+        version, privkey, checksum = to_bytes(wif)
+    except ValueError:
+        raise PrivateKeyError('Invalid scalar/private key')
     if not valid_checksum(version, privkey, checksum):
         raise PrivateKeyError('invalid WIF checksum')
     if len(privkey) == 33:
