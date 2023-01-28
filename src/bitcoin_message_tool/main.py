@@ -539,10 +539,10 @@ def sign(privkey: int, msg: int, /) -> Signature:
             return sig
 
 
-def derive_address(pubkey, addr_type: str, uncompressed=False) -> tuple[str, int]:
-    if uncompressed and addr_type != 'p2pkh':
+def derive_address(pubkey: bytes, addr_type: str) -> tuple[str, int]:
+    if pubkey.startswith(b'\x04') and addr_type != 'p2pkh':
         raise PrivateKeyError('Need WIF-compressed private key for this address type:', addr_type)
-    elif uncompressed:
+    elif pubkey.startswith(b'\x04'):
         return create_address(pubkey), 0
     elif addr_type.lower() == 'p2pkh':
         return create_address(pubkey), 1
@@ -582,7 +582,7 @@ def sign_message(wif: str, addr_type: str, message: str, /, *, deterministic=Fal
         sig = sign(privkey, msg)
     else:
         sig = rfc_sign(privkey, msg, secp256k1.n_curve)
-    address, ver = derive_address(pubkey, addr_type, uncompressed=uncompressed)
+    address, ver = derive_address(pubkey, addr_type)
     r = sig.r.to_bytes(32, 'big')
     s = sig.s.to_bytes(32, 'big')
     for header in headers[ver]:
@@ -593,7 +593,7 @@ def sign_message(wif: str, addr_type: str, message: str, /, *, deterministic=Fal
     raise SignatureError('Invalid signature parameters')
 
 
-def bitcoin_message(address, message: str, signature: str, /) -> None:
+def bitcoin_message(address: str, message: str, signature: str, /) -> None:
     print('-----BEGIN BITCOIN SIGNED MESSAGE-----')
     print(message)
     print('-----BEGIN BITCOIN SIGNATURE-----')
@@ -607,7 +607,7 @@ def verify_message(address: str, message: str, signature: str, /) -> tuple[bool,
     """ Verify signature with address and message """
     try:
         dsig = base64.b64decode(signature)
-    except base64.binascii.Error:
+    except base64.binascii.Error:  # type: ignore
         raise SignatureError('Failed to decode signature')
     if len(dsig) != 65:
         raise SignatureError('Signature must be 65 bytes long:', len(dsig))
@@ -618,14 +618,21 @@ def verify_message(address: str, message: str, signature: str, /) -> tuple[bool,
         raise SignatureError('r-value out of range:', r)
     if s >= secp256k1.n_curve or s == 0:
         raise SignatureError('s-value out of range:', s)
+    uncompressed = False
+    addr_type = 'p2pkh'
     if header >= 43:
         header -= 16
+        addr_type = None
     if header >= 39:
         header -= 12
+        addr_type = 'p2wpkh'
     elif header >= 35:
         header -= 8
+        addr_type = 'p2wpkh-p2sh'
     elif header >= 31:
         header -= 4
+    else:
+        uncompressed = True
     recid = header - 27
     x = r + secp256k1.n_curve * (recid >> 1)
     alpha = pow(x, 3) + secp256k1.b_curve % secp256k1.p_curve
@@ -634,7 +641,6 @@ def verify_message(address: str, message: str, signature: str, /) -> tuple[bool,
     if is_odd(beta - recid):
         y = secp256k1.p_curve - beta
     R = Point(x, y)
-    ver = dsig[:1]
     m_bytes = msg_magic(message)
     z = int.from_bytes(double_sha256(m_bytes), 'big')
     e = (-z) % secp256k1.n_curve
@@ -643,17 +649,10 @@ def verify_message(address: str, message: str, signature: str, /) -> tuple[bool,
     q = ec_mul(e, secp256k1.gen_point)
     Q = ec_add(p, q)
     raw_pubkey = to_affine(ec_mul(inv_r, Q))
-    if ver in headers[0]:
-        pubkey = create_pubkey(raw_pubkey, uncompressed=True)
-        addr = create_address(pubkey)
-    pubkey = create_pubkey(raw_pubkey)
-    if ver in headers[1]:
-        addr = create_address(pubkey)
-    elif ver in headers[2]:
-        addr = create_nested_segwit(pubkey)
-    elif ver in headers[3]:
-        addr = create_native_segwit(pubkey)
-    elif ver in headers[4]:
+    pubkey = create_pubkey(raw_pubkey, uncompressed=uncompressed)
+    if addr_type is not None:
+        addr, _ = derive_address(pubkey, addr_type)
+    else:
         raise NotImplementedError()
     if addr == address:
         return True, pubkey.hex(), f'Message verified to be from {address}'
