@@ -6,6 +6,17 @@ a given address without revealing any confidential information.
 
 Usage:
 
+python main.py -h
+usage: python3 main.py [-h] {sign,verify} ...
+
+Bitcoin message signing/verification tool
+
+positional arguments:
+  {sign,verify}
+
+options:
+  -h, --help     show this help message and exit
+
 Message signing
 
 python main.py sign -h
@@ -22,8 +33,6 @@ Sign messsage:
                         Message to sign
   -d, --deterministic   sign deterministtically (RFC6979)
   -v, --verbose         print prettified message
-
-$python main.py sign -p -a addr_type -m message [, -d -v]
 
 Example 1:
 
@@ -426,7 +435,6 @@ def signed(privkey: int, msg: int, k: int) -> Signature | None:
 
 
     Just a helper function that should not be used directly
-
 
 
     Args:
