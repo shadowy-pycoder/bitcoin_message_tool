@@ -1,5 +1,5 @@
 [tool.poetry]
-name = "bictoin_message_tool"
+name = "bitcoin_message_tool"
 version = "0.1.0"
 description = "Bitcoin message signing/verification tool"
 authors = ["shadowy-pycoder <shadowy-pycoder@example.com>"]
@@ -21,6 +21,10 @@ pytest = "^7.2.1"
 
 [tool.poetry.group.dev.dependencies]
 autopep8 = "^2.0.1"
+
+[tool.poetry.scripts]
+bmt = "bitcoin_message_tool.bmt:main"
+
 
 [build-system]
 requires = ["poetry-core"]

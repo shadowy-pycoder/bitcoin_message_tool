@@ -12,12 +12,16 @@ Installation
 
 To install with pip, run:
 
-    pip install bictoin-message-tool
+    pip install bitcoin-message-tool
 
 Quickstart Guide
 ----------------
 
     Usage:
+
+    python -m bitcoin_message_tool -h
+
+    or
 
     python bmt.py -h
     usage: python3 bmt.py [-h] {sign,verify} ...

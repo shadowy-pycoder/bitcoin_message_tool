@@ -6,6 +6,10 @@ a given address without revealing any confidential information.
 
 Usage:
 
+python -m bitcoin_message_tool -h
+
+or 
+
 python bmt.py -h
 usage: python3 bmt.py [-h] {sign,verify} ...
 
