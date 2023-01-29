@@ -90,7 +90,7 @@ Traceback (most recent call last):
 ...
 PrivateKeyError: ('Need WIF-compressed private key for this address type:', 'p2wpkh')
 
-Messsage verification
+Message verification
 
 python bmt.py verify -h
 usage: python3 bmt.py verify [-h] -a ADDRESS -m [MESSAGE ...] -s SIGNATURE [-v] [-r]
@@ -165,8 +165,8 @@ import argparse
 import base64
 import getpass
 import hmac
+import secrets
 import sys
-from secrets import randbelow
 from hashlib import sha256
 from typing import NamedTuple
 
@@ -226,7 +226,7 @@ class PrivateKey(argparse.Action):
     # https://stackoverflow.com/questions/29948567/how-to-suppress-the-display-of-passwords/29948740#29948740
 
     def __call__(self, parser, namespace, values, option_string):
-        values = getpass.getpass(prompt='PrivateKey(WIF): ')
+        values = getpass.getpass(prompt='private key (WIF): ')
         setattr(namespace, self.dest, values)
 
 
@@ -270,7 +270,7 @@ def mod_inverse(n: int, /, mod: int) -> int:
 
 def generate() -> int:
     """Generate cryptographically-secure random integer"""
-    return randbelow(secp256k1.n_curve)
+    return secrets.randbelow(secp256k1.n_curve)
 
 
 def to_affine(p: JacobianPoint, /) -> Point:
