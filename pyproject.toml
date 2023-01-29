@@ -4,7 +4,7 @@ version = "0.1.0"
 description = "Bitcoin message signing/verification tool"
 authors = ["shadowy-pycoder <shadowy-pycoder@example.com>"]
 readme = "README.md"
-packages = [{include = "bictoin_message_tool", from = "src"}]
+packages = [{include = "bitcoin_message_tool"}]
 classifiers = [
     "Programming Language :: Python :: 3",
     "License :: OSI Approved :: MIT License",
