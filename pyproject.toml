@@ -4,7 +4,12 @@ version = "0.1.0"
 description = "Bitcoin message signing/verification tool"
 authors = ["shadowy-pycoder <shadowy-pycoder@example.com>"]
 readme = "README.md"
-packages = [{include = "bictoin_message_tool"}]
+packages = [{include = "bictoin_message_tool", from = "src"}]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
 
 [tool.poetry.dependencies]
 python = "^3.10"
@@ -20,3 +25,7 @@ autopep8 = "^2.0.1"
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
+
+[project.urls]
+"Homepage" = "https://github.com/shadowy-pycoder/bitcoin_message_tool"
+"Bug Tracker" = "https://github.com/shadowy-pycoder/bitcoin_message_tool/issues"
