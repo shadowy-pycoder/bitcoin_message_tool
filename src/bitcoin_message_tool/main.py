@@ -35,6 +35,7 @@ Sign messsage:
   -v, --verbose         print prettified message
 
 Example 1:
+Non-deterministic signature for compressed private key and p2pkh address
 
 $python main.py sign -p -a p2pkh -m ECDSA is the most fun I have ever experienced
 
@@ -47,6 +48,7 @@ Message: ECDSA is the most fun I have ever experienced
 Signature: IBuc5GXSJCr6m7KevsBAoCiX8ToOjW2CDZMr6PCEbiHwQJ237LZTj/REbDHI1/yelY6uBWEWXiOWoGnajlgvO/A=
 
 Example 2:
+Deterministic signature for compressed private key and p2pkh address
 
 $python main.py sign -p -a p2pkh -m ECDSA is the most fun I have ever experienced -d
 
@@ -59,12 +61,13 @@ Message: ECDSA is the most fun I have ever experienced
 Signature: HyiLDcQQ1p2bKmyqM0e5oIBQtKSZds4kJQ+VbZWpr0kYA6Qkam2MlUeTr+lm1teUGHuLapfa43JjyrRqdSA0pxs=
 
 Example 3:
+Deterministic signature for compressed private key and p2pkh address (verbose mode)
 
 $python main.py sign -p -a p2pkh -m ECDSA is the most fun I have ever experienced -d -v
 
 PrivateKey(WIF): <insert private key here>
 
-Ouput:
+Output:
 
 -----BEGIN BITCOIN SIGNED MESSAGE-----
 ECDSA is the most fun I have ever experienced
@@ -74,6 +77,18 @@ ECDSA is the most fun I have ever experienced
 HyiLDcQQ1p2bKmyqM0e5oIBQtKSZds4kJQ+VbZWpr0kYA6Qkam2MlUeTr+lm1teUGHuLapfa43JjyrRqdSA0pxs=
 -----END BITCOIN SIGNATURE-----
 
+Example 4:
+Uncompressed private keys can't produce addresses other than 'p2pkh'
+
+python main.py sign -p -m ECDSA is the most fun I have ever experienced -a 'p2wpkh'  -d -v
+
+PrivateKey(WIF): <insert private key here>
+
+Output:
+
+Traceback (most recent call last):
+...
+PrivateKeyError: ('Need WIF-compressed private key for this address type:', 'p2wpkh')
 
 Messsage verification
 
@@ -94,6 +109,7 @@ Verify messsage:
   -r, --recpub          recover public key
 
 Example 1:
+Standard message verification
 
 python main.py verify -a 175A5YsPUdM71mnNCC3i8faxxYJgBonjWL \
 > -m ECDSA is the most fun I have ever experienced \
@@ -104,6 +120,7 @@ Output:
 True
 
 Example 2:
+Message verification in verbose mode
 
 python main.py verify -a 175A5YsPUdM71mnNCC3i8faxxYJgBonjWL \
 > -m ECDSA is the most fun I have ever experienced \
@@ -115,7 +132,8 @@ Output:
 True
 Message verified to be from 175A5YsPUdM71mnNCC3i8faxxYJgBonjWL
 
-Example3:
+Example 3:
+Display a recovered public key
 
 python main.py verify -a 175A5YsPUdM71mnNCC3i8faxxYJgBonjWL \
 > -m ECDSA is the most fun I have ever experienced \
@@ -126,6 +144,20 @@ Output:
 
 True
 024aeaf55040fa16de37303d13ca1dde85f4ca9baa36e2963a27a1c0c1165fe2b1
+
+Example 4:
+Error message
+
+python main.py verify -a 175A5YsPUdM71mnNCC3i8faxxYJgBonjWL \
+> -m ECDSA is the most fun I have ever experienced \
+> -s HyiLDcQQ1p2bKmyqM0e5oIBQtKSZds4kJQ+VbZWpr0kYA6Qkam2MlUeTr+lm1teUGHuLaffa43Jj= -v -r \
+
+Output:
+
+Traceback (most recent call last):
+...
+SignatureError: ('Signature must be 65 bytes long:', 57)
+
 
 """
 
@@ -208,7 +240,8 @@ IDENTITY_POINT = JacobianPoint(x=P_CURVE, y=0, z=1)
 POW_2_256_M1 = 2 ** 256 - 1
 
 secp256k1 = EllipticCurve(p_curve=P_CURVE, n_curve=N_CURVE,
-                          a_curve=A_CURVE, b_curve=B_CURVE, gen_point=JacobianPoint(x=GEN_POINT[0], y=GEN_POINT[1], z=1))
+                          a_curve=A_CURVE, b_curve=B_CURVE,
+                          gen_point=JacobianPoint(x=GEN_POINT[0], y=GEN_POINT[1], z=1))
 
 
 precomputes: list[JacobianPoint] = []
@@ -595,7 +628,7 @@ def sign_message(wif: str, addr_type: str, message: str, /, *, deterministic=Fal
 
 def bitcoin_message(address: str, message: str, signature: str, /) -> None:
     print('-----BEGIN BITCOIN SIGNED MESSAGE-----')
-    print(message)
+    print(f'{message!r}')
     print('-----BEGIN BITCOIN SIGNATURE-----')
     print(address)
     print()
@@ -607,8 +640,8 @@ def verify_message(address: str, message: str, signature: str, /) -> tuple[bool,
     """ Verify signature with address and message """
     try:
         dsig = base64.b64decode(signature)
-    except base64.binascii.Error:  # type: ignore
-        raise SignatureError('Failed to decode signature')
+    except base64.binascii.Error as error:  # type: ignore
+        raise SignatureError(f'Failed to decode signature: {error.args[0]}')
     if len(dsig) != 65:
         raise SignatureError('Signature must be 65 bytes long:', len(dsig))
     header, r, s = dsig[0], int.from_bytes(dsig[1:33], 'big'), int.from_bytes(dsig[33:], 'big')
@@ -622,7 +655,7 @@ def verify_message(address: str, message: str, signature: str, /) -> tuple[bool,
     addr_type = 'p2pkh'
     if header >= 43:
         header -= 16
-        addr_type = None
+        addr_type = ''
     if header >= 39:
         header -= 12
         addr_type = 'p2wpkh'
@@ -650,10 +683,10 @@ def verify_message(address: str, message: str, signature: str, /) -> tuple[bool,
     Q = ec_add(p, q)
     raw_pubkey = to_affine(ec_mul(inv_r, Q))
     pubkey = create_pubkey(raw_pubkey, uncompressed=uncompressed)
-    if addr_type is not None:
+    if addr_type:
         addr, _ = derive_address(pubkey, addr_type)
     else:
-        raise NotImplementedError()
+        raise SignatureError('Unknown address type')
     if addr == address:
         return True, pubkey.hex(), f'Message verified to be from {address}'
     return False, pubkey.hex(), 'Message failed to verify'
@@ -718,21 +751,20 @@ def main():
                               help='recover public key')
 
     args = parser.parse_args()
+
+    if len(sys.argv) == 1:
+        parser.print_help()
+        sys.exit(2)
+
+    message = ' '.join(word for word in args.message)
     if args.cmd == 'sign':
         privkey = args.privkey
-        message = ' '.join(word for word in args.message)
+        result = sign_message(privkey, args.addr_type, message, deterministic=args.deterministic)
         if args.verbose:
-            bitcoin_message(*sign_message(privkey,
-                                          args.addr_type,
-                                          message,
-                                          deterministic=args.deterministic))
+            bitcoin_message(*result)
         else:
-            print('Bitcoin address: {}\nMessage: {}\nSignature: {}'.format(*sign_message(args.privkey,
-                                                                                         args.addr_type,
-                                                                                         message,
-                                                                                         deterministic=args.deterministic)))
+            print('Bitcoin address: {}\nMessage: {!r}\nSignature: {}'.format(*result))
     elif args.cmd == 'verify':
-        message = ' '.join(word for word in args.message)
         verified, pubkey, result = verify_message(args.address, message, args.signature)
         print(verified)
         if args.verbose:
