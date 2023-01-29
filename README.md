@@ -17,159 +17,159 @@ To install with pip, run:
 Quickstart Guide
 ----------------
 
-Usage:
+    Usage:
 
-python bmt.py -h
-usage: python3 bmt.py [-h] {sign,verify} ...
+    python bmt.py -h
+    usage: python3 bmt.py [-h] {sign,verify} ...
 
-Bitcoin message signing/verification tool
+    Bitcoin message signing/verification tool
 
-positional arguments:
-  {sign,verify}
+    positional arguments:
+    {sign,verify}
 
-options:
-  -h, --help     show this help message and exit
+    options:
+    -h, --help     show this help message and exit
 
-Message signing
+    Message signing
 
-python bmt.py sign -h
-usage: python3 bmt.py sign [-h] -p -a {p2pkh,p2wpkh-p2sh,p2wpkh} -m [MESSAGE ...] [-d] [-v]
+    python bmt.py sign -h
+    usage: python3 bmt.py sign [-h] -p -a {p2pkh,p2wpkh-p2sh,p2wpkh} -m [MESSAGE ...] [-d] [-v]
 
-options:
-  -h, --help            show this help message and exit
+    options:
+    -h, --help            show this help message and exit
 
-Sign messsage:
-  -p, --privkey         private key in wallet import format (WIF)
-  -a {p2pkh,p2wpkh-p2sh,p2wpkh}, --addr_type {p2pkh,p2wpkh-p2sh,p2wpkh}
-                        type of bitcoin address
-  -m [MESSAGE ...], --message [MESSAGE ...]
-                        Message to sign
-  -d, --deterministic   sign deterministtically (RFC6979)
-  -v, --verbose         print prettified message
+    Sign messsage:
+    -p, --privkey         private key in wallet import format (WIF)
+    -a {p2pkh,p2wpkh-p2sh,p2wpkh}, --addr_type {p2pkh,p2wpkh-p2sh,p2wpkh}
+                            type of bitcoin address
+    -m [MESSAGE ...], --message [MESSAGE ...]
+                            Message to sign
+    -d, --deterministic   sign deterministtically (RFC6979)
+    -v, --verbose         print prettified message
 
-Example 1:
-Non-deterministic signature for compressed private key and p2pkh address
+    Example 1:
+    Non-deterministic signature for compressed private key and p2pkh address
 
-$python bmt.py sign -p -a p2pkh -m ECDSA is the most fun I have ever experienced
+    $python bmt.py sign -p -a p2pkh -m ECDSA is the most fun I have ever experienced
 
-PrivateKey(WIF): <insert private key here>
+    PrivateKey(WIF): <insert private key here>
 
-Output:
+    Output:
 
-Bitcoin address: 175A5YsPUdM71mnNCC3i8faxxYJgBonjWL
-Message: ECDSA is the most fun I have ever experienced
-Signature: IBuc5GXSJCr6m7KevsBAoCiX8ToOjW2CDZMr6PCEbiHwQJ237LZTj/REbDHI1/yelY6uBWEWXiOWoGnajlgvO/A=
+    Bitcoin address: 175A5YsPUdM71mnNCC3i8faxxYJgBonjWL
+    Message: ECDSA is the most fun I have ever experienced
+    Signature: IBuc5GXSJCr6m7KevsBAoCiX8ToOjW2CDZMr6PCEbiHwQJ237LZTj/REbDHI1/yelY6uBWEWXiOWoGnajlgvO/A=
 
-Example 2:
-Deterministic signature for compressed private key and p2pkh address
+    Example 2:
+    Deterministic signature for compressed private key and p2pkh address
 
-$python bmt.py sign -p -a p2pkh -m ECDSA is the most fun I have ever experienced -d
+    $python bmt.py sign -p -a p2pkh -m ECDSA is the most fun I have ever experienced -d
 
-PrivateKey(WIF): <insert private key here>
+    PrivateKey(WIF): <insert private key here>
 
-Output:
+    Output:
 
-Bitcoin address: 175A5YsPUdM71mnNCC3i8faxxYJgBonjWL
-Message: ECDSA is the most fun I have ever experienced
-Signature: HyiLDcQQ1p2bKmyqM0e5oIBQtKSZds4kJQ+VbZWpr0kYA6Qkam2MlUeTr+lm1teUGHuLapfa43JjyrRqdSA0pxs=
+    Bitcoin address: 175A5YsPUdM71mnNCC3i8faxxYJgBonjWL
+    Message: ECDSA is the most fun I have ever experienced
+    Signature: HyiLDcQQ1p2bKmyqM0e5oIBQtKSZds4kJQ+VbZWpr0kYA6Qkam2MlUeTr+lm1teUGHuLapfa43JjyrRqdSA0pxs=
 
-Example 3:
-Deterministic signature for compressed private key and p2pkh address (verbose mode)
+    Example 3:
+    Deterministic signature for compressed private key and p2pkh address (verbose mode)
 
-$python bmt.py sign -p -a p2pkh -m ECDSA is the most fun I have ever experienced -d -v
+    $python bmt.py sign -p -a p2pkh -m ECDSA is the most fun I have ever experienced -d -v
 
-PrivateKey(WIF): <insert private key here>
+    PrivateKey(WIF): <insert private key here>
 
-Output:
+    Output:
 
------BEGIN BITCOIN SIGNED MESSAGE-----
-ECDSA is the most fun I have ever experienced
------BEGIN BITCOIN SIGNATURE-----
-175A5YsPUdM71mnNCC3i8faxxYJgBonjWL
+    -----BEGIN BITCOIN SIGNED MESSAGE-----
+    ECDSA is the most fun I have ever experienced
+    -----BEGIN BITCOIN SIGNATURE-----
+    175A5YsPUdM71mnNCC3i8faxxYJgBonjWL
 
-HyiLDcQQ1p2bKmyqM0e5oIBQtKSZds4kJQ+VbZWpr0kYA6Qkam2MlUeTr+lm1teUGHuLapfa43JjyrRqdSA0pxs=
------END BITCOIN SIGNATURE-----
+    HyiLDcQQ1p2bKmyqM0e5oIBQtKSZds4kJQ+VbZWpr0kYA6Qkam2MlUeTr+lm1teUGHuLapfa43JjyrRqdSA0pxs=
+    -----END BITCOIN SIGNATURE-----
 
-Example 4:
-Uncompressed private keys can't produce addresses other than 'p2pkh'
+    Example 4:
+    Uncompressed private keys can't produce addresses other than 'p2pkh'
 
-python bmt.py sign -p -m ECDSA is the most fun I have ever experienced -a 'p2wpkh'  -d -v
+    python bmt.py sign -p -m ECDSA is the most fun I have ever experienced -a 'p2wpkh'  -d -v
 
-PrivateKey(WIF): <insert private key here>
+    PrivateKey(WIF): <insert private key here>
 
-Output:
+    Output:
 
-Traceback (most recent call last):
-...
-PrivateKeyError: ('Need WIF-compressed private key for this address type:', 'p2wpkh')
+    Traceback (most recent call last):
+    ...
+    PrivateKeyError: ('Need WIF-compressed private key for this address type:', 'p2wpkh')
 
-Message verification
+    Message verification
 
-python bmt.py verify -h
-usage: python3 bmt.py verify [-h] -a ADDRESS -m [MESSAGE ...] -s SIGNATURE [-v] [-r]
+    python bmt.py verify -h
+    usage: python3 bmt.py verify [-h] -a ADDRESS -m [MESSAGE ...] -s SIGNATURE [-v] [-r]
 
-options:
-  -h, --help            show this help message and exit
+    options:
+    -h, --help            show this help message and exit
 
-Verify messsage:
-  -a ADDRESS, --address ADDRESS
-                        specify bitcoin address
-  -m [MESSAGE ...], --message [MESSAGE ...]
-                        Message to verify
-  -s SIGNATURE, --signature SIGNATURE
-                        bitcoin signature in base64 format
-  -v, --verbose         print full message
-  -r, --recpub          recover public key
+    Verify messsage:
+    -a ADDRESS, --address ADDRESS
+                            specify bitcoin address
+    -m [MESSAGE ...], --message [MESSAGE ...]
+                            Message to verify
+    -s SIGNATURE, --signature SIGNATURE
+                            bitcoin signature in base64 format
+    -v, --verbose         print full message
+    -r, --recpub          recover public key
 
-Example 1:
-Standard message verification
+    Example 1:
+    Standard message verification
 
-python bmt.py verify -a 175A5YsPUdM71mnNCC3i8faxxYJgBonjWL \
-> -m ECDSA is the most fun I have ever experienced \
-> -s HyiLDcQQ1p2bKmyqM0e5oIBQtKSZds4kJQ+VbZWpr0kYA6Qkam2MlUeTr+lm1teUGHuLapfa43JjyrRqdSA0pxs=
+    python bmt.py verify -a 175A5YsPUdM71mnNCC3i8faxxYJgBonjWL \
+    > -m ECDSA is the most fun I have ever experienced \
+    > -s HyiLDcQQ1p2bKmyqM0e5oIBQtKSZds4kJQ+VbZWpr0kYA6Qkam2MlUeTr+lm1teUGHuLapfa43JjyrRqdSA0pxs=
 
-Output:
+    Output:
 
-True
+    True
 
-Example 2:
-Message verification in verbose mode
+    Example 2:
+    Message verification in verbose mode
 
-python bmt.py verify -a 175A5YsPUdM71mnNCC3i8faxxYJgBonjWL \
-> -m ECDSA is the most fun I have ever experienced \
-> -s HyiLDcQQ1p2bKmyqM0e5oIBQtKSZds4kJQ+VbZWpr0kYA6Qkam2MlUeTr+lm1teUGHuLapfa43JjyrRqdSA0pxs= \
-> -v
+    python bmt.py verify -a 175A5YsPUdM71mnNCC3i8faxxYJgBonjWL \
+    > -m ECDSA is the most fun I have ever experienced \
+    > -s HyiLDcQQ1p2bKmyqM0e5oIBQtKSZds4kJQ+VbZWpr0kYA6Qkam2MlUeTr+lm1teUGHuLapfa43JjyrRqdSA0pxs= \
+    > -v
 
-Output:
+    Output:
 
-True
-Message verified to be from 175A5YsPUdM71mnNCC3i8faxxYJgBonjWL
+    True
+    Message verified to be from 175A5YsPUdM71mnNCC3i8faxxYJgBonjWL
 
-Example 3:
-Display a recovered public key
+    Example 3:
+    Display a recovered public key
 
-python bmt.py verify -a 175A5YsPUdM71mnNCC3i8faxxYJgBonjWL \
-> -m ECDSA is the most fun I have ever experienced \
-> -s HyiLDcQQ1p2bKmyqM0e5oIBQtKSZds4kJQ+VbZWpr0kYA6Qkam2MlUeTr+lm1teUGHuLapfa43JjyrRqdSA0pxs= \
-> --recpub
+    python bmt.py verify -a 175A5YsPUdM71mnNCC3i8faxxYJgBonjWL \
+    > -m ECDSA is the most fun I have ever experienced \
+    > -s HyiLDcQQ1p2bKmyqM0e5oIBQtKSZds4kJQ+VbZWpr0kYA6Qkam2MlUeTr+lm1teUGHuLapfa43JjyrRqdSA0pxs= \
+    > --recpub
 
-Output:
+    Output:
 
-True
-024aeaf55040fa16de37303d13ca1dde85f4ca9baa36e2963a27a1c0c1165fe2b1
+    True
+    024aeaf55040fa16de37303d13ca1dde85f4ca9baa36e2963a27a1c0c1165fe2b1
 
-Example 4:
-Error message
+    Example 4:
+    Error message
 
-python bmt.py verify -a 175A5YsPUdM71mnNCC3i8faxxYJgBonjWL \
-> -m ECDSA is the most fun I have ever experienced \
-> -s HyiLDcQQ1p2bKmyqM0e5oIBQtKSZds4kJQ+VbZWpr0kYA6Qkam2MlUeTr+lm1teUGHuLaffa43Jj= -v -r \
+    python bmt.py verify -a 175A5YsPUdM71mnNCC3i8faxxYJgBonjWL \
+    > -m ECDSA is the most fun I have ever experienced \
+    > -s HyiLDcQQ1p2bKmyqM0e5oIBQtKSZds4kJQ+VbZWpr0kYA6Qkam2MlUeTr+lm1teUGHuLaffa43Jj= -v -r \
 
-Output:
+    Output:
 
-Traceback (most recent call last):
-...
-SignatureError: ('Signature must be 65 bytes long:', 57)
+    Traceback (most recent call last):
+    ...
+    SignatureError: ('Signature must be 65 bytes long:', 57)
 
 Contribute
 ----------
