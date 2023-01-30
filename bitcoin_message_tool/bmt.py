@@ -1,8 +1,20 @@
 """
 Bitcoin Message Tool by shadowy-pycoder 2023
+
 A lightweight CLI tool for signing and verification of bitcoin messages.
 Bitcoin message is the most straightforward and natural way to prove ownership over
 a given address without revealing any confidential information.
+
+This tool closely follows specification described in BIP137:
+
+Please note that "since this format includes P2PKH keys, it is backwards compatible, 
+but keep in mind some software has checks for ranges of headers and will report the newer 
+segwit header types as errors."
+
+More info: https://github.com/bitcoin/bips/blob/master/bip-0137.mediawiki
+
+
+
 
 Usage:
 
