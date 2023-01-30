@@ -1,5 +1,5 @@
 """
-Bitcoin Message Tool by shadowy-pycoder 2023
+Bitcoin Message Tool by shadowy-pycoder 30.01.2023 https://github.com/shadowy-pycoder/
 
 A lightweight CLI tool for signing and verification of bitcoin messages.
 Bitcoin message is the most straightforward and natural way to prove ownership over
@@ -190,6 +190,8 @@ import base58
 import bech32  # type: ignore
 from ripemd.ripemd160 import ripemd160  # type: ignore
 
+# ################################ non-public interface (see below) #################################
+
 
 class Point(NamedTuple):
     """Point on elliptic curve"""
@@ -242,7 +244,7 @@ class PrivateKey(argparse.Action):
     # https://stackoverflow.com/questions/29948567/how-to-suppress-the-display-of-passwords/29948740#29948740
 
     def __call__(self, parser, namespace, values, option_string):
-        values = getpass.getpass(prompt='private key (WIF): ')
+        values = getpass.getpass(prompt='PrivateKey(WIF): ')
         setattr(namespace, self.dest, values)
 
 
@@ -481,11 +483,11 @@ def msg_magic(msg: str) -> bytes:
 
 
 def signed(privkey: int, msg: int, k: int) -> Signature | None:
-    """Calculate r and s values of a signature
+    """
+    Calculate r and s values of a signature
 
 
     Just a helper function that should not be used directly
-
 
     Args:
 
@@ -589,6 +591,19 @@ def sign(privkey: int, msg: int, /) -> Signature:
 
 
 def derive_address(pubkey: bytes, addr_type: str) -> tuple[str, int]:
+    """
+    Derive bitcoin address from public key and given address type
+
+
+    This function shouldn't be called directly
+
+    Args:
+
+    pubkey - bitcoin public key in bytes format
+
+    addr_type - either 'p2pkh', 'p2wpkh-p2sh' or 'p2wpkh'
+    """
+
     if pubkey.startswith(b'\x04') and addr_type != 'p2pkh':
         raise PrivateKeyError('Need WIF-compressed private key for this address type:', addr_type)
     elif pubkey.startswith(b'\x04'):
@@ -602,6 +617,8 @@ def derive_address(pubkey: bytes, addr_type: str) -> tuple[str, int]:
     else:
         raise SignatureError('Invalid address type')
 
+# ################################ public interface starts here #################################
+
 
 def sign_message(wif: str, addr_type: str, message: str, /, *, deterministic=False) -> tuple[str, ...]:
     """
@@ -614,7 +631,7 @@ def sign_message(wif: str, addr_type: str, message: str, /, *, deterministic=Fal
     Uncompressed private key will only produce one address type - uncompressed legacy address
 
     addr_type - specify which address type you want to use to produce signature. 
-    Ir can be either p2pkh (compressed and uncompressed), p2wpkh-p2sh or p2wpkh (only compressed).
+    It can be either p2pkh (compressed and uncompressed), p2wpkh-p2sh or p2wpkh (only compressed).
 
     message - string that will be used for signing
 
@@ -710,7 +727,7 @@ def verify_message(address: str, message: str, signature: str, /) -> tuple[bool,
 
 def main():
     parser = argparse.ArgumentParser(
-        prog='python3 bmt.py',
+        prog='python3 <application>',
         description='Bitcoin message signing/verification tool')
     subparsers = parser.add_subparsers()
     sign_parser = subparsers.add_parser('sign')

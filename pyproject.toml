@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "bitcoin_message_tool"
-version = "0.1.0"
+version = "0.1.1"
 description = "Bitcoin message signing/verification tool"
 authors = ["shadowy-pycoder <shadowy-pycoder@example.com>"]
 readme = "README.md"

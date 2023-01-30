@@ -186,4 +186,4 @@ Output:
 Contribute
 ----------
 
-If you'd like to contribute to bitcoin_message_signer, check out https://github.com/shadowy_pycoder/bitcoin_message_tool
+If you'd like to contribute to bitcoin_message_signer, check out https://github.com/shadowy-pycoder/bitcoin_message_tool
