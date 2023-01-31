@@ -661,7 +661,7 @@ def sign_message(wif: str, addr_type: str, message: str, /, *, deterministic=Fal
 
 def bitcoin_message(address: str, message: str, signature: str, /) -> None:
     print('-----BEGIN BITCOIN SIGNED MESSAGE-----')
-    print(f'{message!r}')
+    print(f'{message}')
     print('-----BEGIN BITCOIN SIGNATURE-----')
     print(address)
     print()
@@ -796,7 +796,7 @@ def main():
         if args.verbose:
             bitcoin_message(*result)
         else:
-            print('Bitcoin address: {}\nMessage: {!r}\nSignature: {}'.format(*result))
+            print('Bitcoin address: {}\nMessage: {}\nSignature: {}'.format(*result))
     elif args.cmd == 'verify':
         verified, pubkey, result = verify_message(args.address, message, args.signature)
         print(verified)
