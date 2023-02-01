@@ -45,7 +45,7 @@ Quickstart Guide
 Message signing:
 
     python bmt.py sign -h
-    usage: python3 bmt.py sign [-h] -p -a {p2pkh,p2wpkh-p2sh,p2wpkh} -m [MESSAGE ...] [-d] [-v]
+    usage: python3 <application> sign [-h] -p -a {p2pkh,p2wpkh-p2sh,p2wpkh} -m [MESSAGE ...] [-d] [-e] [-v]
 
     options:
     -h, --help            show this help message and exit
@@ -57,6 +57,7 @@ Message signing:
     -m [MESSAGE ...], --message [MESSAGE ...]
                             Message to sign
     -d, --deterministic   sign deterministtically (RFC6979)
+    -e, --electrum        create Electrum-like signature
     -v, --verbose         print prettified message
 
 Example 1:
@@ -118,7 +119,7 @@ Output:
 Message verification:
 
     python bmt.py verify -h
-    usage: python3 bmt.py verify [-h] -a ADDRESS -m [MESSAGE ...] -s SIGNATURE [-v] [-r]
+    usage: python3 <application> verify [-h] -a ADDRESS -m [MESSAGE ...] -s SIGNATURE [-e] [-v] [-r]
 
     options:
     -h, --help            show this help message and exit
@@ -130,6 +131,7 @@ Message verification:
                             Message to verify
     -s SIGNATURE, --signature SIGNATURE
                             bitcoin signature in base64 format
+    -e, --electrum        verify Electrum-like signature
     -v, --verbose         print full message
     -r, --recpub          recover public key
 

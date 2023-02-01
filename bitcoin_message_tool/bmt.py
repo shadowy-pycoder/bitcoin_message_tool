@@ -36,7 +36,7 @@ options:
 Message signing
 
 python bmt.py sign -h
-usage: python3 bmt.py sign [-h] -p -a {p2pkh,p2wpkh-p2sh,p2wpkh} -m [MESSAGE ...] [-d] [-v]
+usage: python3 <application> sign [-h] -p -a {p2pkh,p2wpkh-p2sh,p2wpkh} -m [MESSAGE ...] [-d] [-e] [-v]
 
 options:
   -h, --help            show this help message and exit
@@ -48,6 +48,7 @@ Sign messsage:
   -m [MESSAGE ...], --message [MESSAGE ...]
                         Message to sign
   -d, --deterministic   sign deterministtically (RFC6979)
+  -e, --electrum        create Electrum-like signature
   -v, --verbose         print prettified message
 
 Example 1:
@@ -109,7 +110,7 @@ PrivateKeyError: ('Need WIF-compressed private key for this address type:', 'p2w
 Message verification
 
 python bmt.py verify -h
-usage: python3 bmt.py verify [-h] -a ADDRESS -m [MESSAGE ...] -s SIGNATURE [-v] [-r]
+usage: python3 <application> verify [-h] -a ADDRESS -m [MESSAGE ...] -s SIGNATURE [-e] [-v] [-r]
 
 options:
   -h, --help            show this help message and exit
@@ -121,6 +122,7 @@ Verify messsage:
                         Message to verify
   -s SIGNATURE, --signature SIGNATURE
                         bitcoin signature in base64 format
+  -e, --electrum        verify Electrum-like signature
   -v, --verbose         print full message
   -r, --recpub          recover public key
 
@@ -620,7 +622,7 @@ def derive_address(pubkey: bytes, addr_type: str) -> tuple[str, int]:
 # ################################ public interface starts here #################################
 
 
-def sign_message(wif: str, addr_type: str, message: str, /, *, deterministic=False) -> tuple[str, ...]:
+def sign_message(wif: str, addr_type: str, message: str, /, *, deterministic=False, electrum=False) -> tuple[str, ...]:
     """
     Sign message with private key (WIF) and specified address type
 
@@ -649,11 +651,15 @@ def sign_message(wif: str, addr_type: str, message: str, /, *, deterministic=Fal
     else:
         sig = rfc_sign(privkey, msg, secp256k1.n_curve)
     address, ver = derive_address(pubkey, addr_type)
+    if electrum and uncompressed:
+        ver = 0
+    if electrum and not uncompressed:
+        ver = 1
     r = sig.r.to_bytes(32, 'big')
     s = sig.s.to_bytes(32, 'big')
     for header in headers[ver]:
         signature = base64.b64encode(header + r + s).decode('utf-8')
-        verified, _, _ = verify_message(address, message, signature)
+        verified, _, _ = verify_message(address, message, signature, electrum=electrum)
         if verified:
             return address, message, signature
     raise SignatureError('Invalid signature parameters')
@@ -669,7 +675,7 @@ def bitcoin_message(address: str, message: str, signature: str, /) -> None:
     print('-----END BITCOIN SIGNATURE-----')
 
 
-def verify_message(address: str, message: str, signature: str, /) -> tuple[bool, str, str]:
+def verify_message(address: str, message: str, signature: str, /, *, electrum=False) -> tuple[bool, str, str]:
     """ Verify signature with address and message """
     try:
         dsig = base64.b64decode(signature)
@@ -716,6 +722,12 @@ def verify_message(address: str, message: str, signature: str, /) -> tuple[bool,
     Q = ec_add(p, q)
     raw_pubkey = to_affine(ec_mul(inv_r, Q))
     pubkey = create_pubkey(raw_pubkey, uncompressed=uncompressed)
+    if electrum and not uncompressed:
+        for addr_type in ['p2pkh', 'p2wpkh-p2sh', 'p2wpkh']:
+            addr, _ = derive_address(pubkey, addr_type)
+            if addr == address:
+                return True, pubkey.hex(), f'Message verified to be from {address}'
+        return False, pubkey.hex(), 'Message failed to verify'
     if addr_type:
         addr, _ = derive_address(pubkey, addr_type)
     else:
@@ -754,6 +766,10 @@ def main():
                             '--deterministic',
                             action='store_true',
                             help='sign deterministtically (RFC6979)')
+    sign_group.add_argument('-e',
+                            '--electrum',
+                            action='store_true',
+                            help='create Electrum-like signature')
     sign_group.add_argument('-v',
                             '--verbose',
                             action='store_true',
@@ -774,6 +790,10 @@ def main():
                               '--signature',
                               required=True,
                               help='bitcoin signature in base64 format')
+    verify_group.add_argument('-e',
+                              '--electrum',
+                              action='store_true',
+                              help='verify Electrum-like signature')
     verify_group.add_argument('-v',
                               '--verbose',
                               action='store_true',
@@ -792,13 +812,20 @@ def main():
     message = ' '.join(word for word in args.message)
     if args.cmd == 'sign':
         privkey = args.privkey
-        result = sign_message(privkey, args.addr_type, message, deterministic=args.deterministic)
+        result = sign_message(privkey,
+                              args.addr_type,
+                              message,
+                              deterministic=args.deterministic,
+                              electrum=args.electrum)
         if args.verbose:
             bitcoin_message(*result)
         else:
             print('Bitcoin address: {}\nMessage: {}\nSignature: {}'.format(*result))
     elif args.cmd == 'verify':
-        verified, pubkey, result = verify_message(args.address, message, args.signature)
+        verified, pubkey, result = verify_message(args.address,
+                                                  message,
+                                                  args.signature,
+                                                  electrum=args.electrum)
         print(verified)
         if args.verbose:
             print(result)
