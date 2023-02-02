@@ -640,6 +640,8 @@ def sign_message(wif: str, addr_type: str, message: str, /, *, deterministic=Fal
     deterministic - if you want your signatures be produced deterministically, set this flag to True,
     and each unique combination of private key and message will yield only one signature 
 
+    electrum - if set to True segwit addresses will produce signatures with Legacy headers
+
     """
     m_bytes = msg_magic(message)
     msg = int.from_bytes(double_sha256(m_bytes), 'big')
@@ -651,10 +653,8 @@ def sign_message(wif: str, addr_type: str, message: str, /, *, deterministic=Fal
     else:
         sig = rfc_sign(privkey, msg, secp256k1.n_curve)
     address, ver = derive_address(pubkey, addr_type)
-    if electrum and uncompressed:
-        ver = 0
-    if electrum and not uncompressed:
-        ver = 1
+    if electrum:
+        ver = 0 if uncompressed else 1
     r = sig.r.to_bytes(32, 'big')
     s = sig.s.to_bytes(32, 'big')
     for header in headers[ver]:
@@ -835,3 +835,13 @@ def main():
 
 if __name__ == '__main__':
     main()
+
+
+# -----BEGIN BITCOIN SIGNED MESSAGE-----
+# ECDSA is the most fun I have ever experienced
+# -----BEGIN BITCOIN SIGNATURE-----
+# bc1qsexve09agl8e9gwkflr85x6s2szh27efcts6v5
+
+# KAaU/5cb7jPkNQxTtapPqR3EKyDU1Esjd4aZly+5Rwd6Cjlvgw6X0gUQjkrMa8Z+vl/tNcfgcuwzcCE3NtRk6Gk=
+# -----END BITCOIN SIGNATURE-----
+# KwDiBf89QgGbjEhKnhXJuH7LrciVrZi3qYjgd9M7rFU9EMfkHW6w
