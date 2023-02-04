@@ -1,4 +1,4 @@
-from bitcoin_message_tool import bmt
+import bmt
 
 if __name__ == '__main__':
     bmt.main()

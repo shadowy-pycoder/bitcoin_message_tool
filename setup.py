@@ -19,7 +19,7 @@ with io.open("README.md", encoding="utf-8") as fileObj:
 setup(
     name="bitcoin_message_tool",
     version=version,
-    url="https://github.com/shadowy_pycoder/bitcoin_message_tool",
+    url="https://github.com/shadowy-pycoder/bitcoin_message_tool",
     author="shadowy_pycoder",
     author_email="shadowy_pycoder@example.com",
     description=("""Bitcoin message signing/verification tool"""),
@@ -40,5 +40,7 @@ setup(
         "Programming Language :: Python :: 3.7",
         "Programming Language :: Python :: 3.8",
         "Programming Language :: Python :: 3.9",
+        "Programming Language :: Python :: 3.10",
+        "Programming Language :: Python :: 3.11",
     ],
 )

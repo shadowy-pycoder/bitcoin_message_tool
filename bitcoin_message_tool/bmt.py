@@ -835,13 +835,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-
-
-# -----BEGIN BITCOIN SIGNED MESSAGE-----
-# ECDSA is the most fun I have ever experienced
-# -----BEGIN BITCOIN SIGNATURE-----
-# bc1qsexve09agl8e9gwkflr85x6s2szh27efcts6v5
-
-# KAaU/5cb7jPkNQxTtapPqR3EKyDU1Esjd4aZly+5Rwd6Cjlvgw6X0gUQjkrMa8Z+vl/tNcfgcuwzcCE3NtRk6Gk=
-# -----END BITCOIN SIGNATURE-----
-# KwDiBf89QgGbjEhKnhXJuH7LrciVrZi3qYjgd9M7rFU9EMfkHW6w
