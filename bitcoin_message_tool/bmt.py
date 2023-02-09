@@ -679,8 +679,8 @@ def verify_message(address: str, message: str, signature: str, /, *, electrum=Fa
     """ Verify signature with address and message """
     try:
         dsig = base64.b64decode(signature)
-    except base64.binascii.Error as error:  # type: ignore
-        raise SignatureError(f'Failed to decode signature: {error.args[0]}')
+    except Exception as error:
+        raise SignatureError(f'Failed to decode signature. {error.args[0].capitalize()}')
     if len(dsig) != 65:
         raise SignatureError('Signature must be 65 bytes long:', len(dsig))
     header, r, s = dsig[0], int.from_bytes(dsig[1:33], 'big'), int.from_bytes(dsig[33:], 'big')
