@@ -1,5 +1,5 @@
 """
-Bitcoin Message Tool by shadowy-pycoder 30.01.2023 https://github.com/shadowy-pycoder/
+Bitcoin Message Tool by shadowy-pycoder https://github.com/shadowy-pycoder/
 
 A lightweight CLI tool for signing and verification of bitcoin messages.
 Bitcoin message is the most straightforward and natural way to prove ownership over
@@ -336,13 +336,13 @@ def to_bytes(wif: str, /) -> tuple[bytes, bytes, bytes]:
 def to_int(wif: str, /) -> tuple[int, bool]:
     """Convert WIF private key to integer"""
     if not isinstance(wif, str):
-        raise PrivateKeyError('must be in WIF format')
+        raise PrivateKeyError('Must be in WIF format')
     try:
         version, privkey, checksum = to_bytes(wif)
     except ValueError:
         raise PrivateKeyError('Invalid scalar/private key')
     if not valid_checksum(version, privkey, checksum):
-        raise PrivateKeyError('invalid WIF checksum')
+        raise PrivateKeyError('Invalid WIF checksum')
     if len(privkey) == 33:
         privkey_int = int.from_bytes(privkey[:-1], 'big')
         uncompressed = False
@@ -607,7 +607,7 @@ def derive_address(pubkey: bytes, addr_type: str) -> tuple[str, int]:
     """
 
     if pubkey.startswith(b'\x04') and addr_type != 'p2pkh':
-        raise PrivateKeyError('Need WIF-compressed private key for this address type:', addr_type)
+        raise PrivateKeyError(f'Need WIF-compressed private key for this address type: {addr_type}')
     elif pubkey.startswith(b'\x04'):
         return create_address(pubkey), 0
     elif addr_type.lower() == 'p2pkh':
@@ -680,16 +680,16 @@ def verify_message(address: str, message: str, signature: str, /, *, electrum=Fa
     try:
         dsig = base64.b64decode(signature)
     except Exception as error:
-        raise SignatureError(f'Failed to decode signature. {error.args[0].capitalize()}')
+        raise SignatureError(f'Failed to decode signature: {error.args[0].capitalize()}')
     if len(dsig) != 65:
-        raise SignatureError('Signature must be 65 bytes long:', len(dsig))
+        raise SignatureError(f'Signature must be 65 bytes long: Got {len(dsig)}')
     header, r, s = dsig[0], int.from_bytes(dsig[1:33], 'big'), int.from_bytes(dsig[33:], 'big')
     if header < 27 or header > 46:
-        raise SignatureError('Header byte out of range:', header)
+        raise SignatureError(f'Header byte out of range: {header}')
     if r >= secp256k1.n_curve or r == 0:
-        raise SignatureError('r-value out of range:', r)
+        raise SignatureError(f'r-value out of range: {r}')
     if s >= secp256k1.n_curve or s == 0:
-        raise SignatureError('s-value out of range:', s)
+        raise SignatureError(f's-value out of range: {s}')
     uncompressed = False
     addr_type = 'p2pkh'
     if header >= 43:
