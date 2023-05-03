@@ -265,11 +265,11 @@ secp256k1 = EllipticCurve(p_curve=P_CURVE, n_curve=N_CURVE,
 
 
 precomputes: list[JacobianPoint] = []
-headers = [[b'\x1b', b'\x1c', b'\x1d', b'\x1e'],
-           [b'\x1f', b'\x1f', b'\x20', b'\x22'],
-           [b'\x23', b'\x24', b'\x25', b'\x26'],
-           [b'\x27', b'\x29', b'\x28', b'\x2a'],
-           [b'\x2b', b'\x2c', b'\x2d', b'\x2e']]
+headers = [[b'\x1b', b'\x1c', b'\x1d', b'\x1e'],  # 27 - 30 P2PKH uncompressed
+           [b'\x1f', b'\x20', b'\x21', b'\x22'],  # 31 - 34 P2PKH compressed
+           [b'\x23', b'\x24', b'\x25', b'\x26'],  # 35 - 38 P2WPKH-P2SH compressed (BIP-137)
+           [b'\x27', b'\x28', b'\x29', b'\x2a'],  # 39 - 42 P2WPKH compressed (BIP-137)
+           [b'\x2b', b'\x2c', b'\x2d', b'\x2e']]  # 43 - 46
 
 
 def double_sha256(b: bytes) -> bytes:
