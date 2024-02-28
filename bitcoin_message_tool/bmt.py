@@ -185,24 +185,28 @@ import getpass
 import hmac
 import secrets
 import sys
+from argparse import ArgumentParser, Namespace
 from hashlib import sha256
-from typing import NamedTuple
+from typing import Any, NamedTuple, Sequence
 
 import base58
 import bech32  # type: ignore
 from ripemd.ripemd160 import ripemd160  # type: ignore
+
 
 # ################################ non-public interface (see below) #################################
 
 
 class Point(NamedTuple):
     """Point on elliptic curve"""
+
     x: int
     y: int
 
 
 class JacobianPoint(NamedTuple):
     """Point on elliptic curve in jacobian coordinates"""
+
     # https://en.wikipedia.org/wiki/Jacobian_curve
     x: int
     y: int
@@ -211,6 +215,7 @@ class JacobianPoint(NamedTuple):
 
 class EllipticCurve(NamedTuple):
     """Elliptic curve with all the parameters to define it."""
+
     p_curve: int
     n_curve: int
     a_curve: int
@@ -220,6 +225,7 @@ class EllipticCurve(NamedTuple):
 
 class Signature(NamedTuple):
     """Elliptic curve digital signature"""
+
     # https://en.wikipedia.org/wiki/Elliptic_Curve_Digital_Signature_Algorithm
     r: int
     s: int
@@ -243,9 +249,16 @@ class SignatureError(BitcoinMessageError):
 
 class PrivateKey(argparse.Action):
     """Make private keys not appear in CLI"""
+
     # https://stackoverflow.com/questions/29948567/how-to-suppress-the-display-of-passwords/29948740#29948740
 
-    def __call__(self, parser, namespace, values, option_string):
+    def __call__(
+        self,
+        parser: ArgumentParser,
+        namespace: Namespace,
+        values: str | Sequence[Any] | None,
+        option_string: str | None = None,
+    ) -> None:
         values = getpass.getpass(prompt='PrivateKey(WIF): ')
         setattr(namespace, self.dest, values)
 
@@ -254,37 +267,82 @@ P_CURVE = 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEFFFFFC2F
 N_CURVE = 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364141
 A_CURVE = 0
 B_CURVE = 7
-GEN_POINT = (0x79BE667EF9DCBBAC55A06295CE870B07029BFCDB2DCE28D959F2815B16F81798,
-             0x483ADA7726A3C4655DA4FBFC0E1108A8FD17B448A68554199C47D08FFB10D4B8)
+GEN_POINT = (
+    0x79BE667EF9DCBBAC55A06295CE870B07029BFCDB2DCE28D959F2815B16F81798,
+    0x483ADA7726A3C4655DA4FBFC0E1108A8FD17B448A68554199C47D08FFB10D4B8,
+)
 IDENTITY_POINT = JacobianPoint(x=P_CURVE, y=0, z=1)
-POW_2_256_M1 = 2 ** 256 - 1
+POW_2_256_M1 = 2**256 - 1
 
-secp256k1 = EllipticCurve(p_curve=P_CURVE, n_curve=N_CURVE,
-                          a_curve=A_CURVE, b_curve=B_CURVE,
-                          gen_point=JacobianPoint(x=GEN_POINT[0], y=GEN_POINT[1], z=1))
+secp256k1 = EllipticCurve(
+    p_curve=P_CURVE,
+    n_curve=N_CURVE,
+    a_curve=A_CURVE,
+    b_curve=B_CURVE,
+    gen_point=JacobianPoint(x=GEN_POINT[0], y=GEN_POINT[1], z=1),
+)
 
 
 precomputes: list[JacobianPoint] = []
-headers = [[b'\x1b', b'\x1c', b'\x1d', b'\x1e'],  # 27 - 30 P2PKH uncompressed
-           [b'\x1f', b'\x20', b'\x21', b'\x22'],  # 31 - 34 P2PKH compressed
-           [b'\x23', b'\x24', b'\x25', b'\x26'],  # 35 - 38 P2WPKH-P2SH compressed (BIP-137)
-           [b'\x27', b'\x28', b'\x29', b'\x2a'],  # 39 - 42 P2WPKH compressed (BIP-137)
-           [b'\x2b', b'\x2c', b'\x2d', b'\x2e']]  # 43 - 46
+headers = [
+    [b'\x1b', b'\x1c', b'\x1d', b'\x1e'],  # 27 - 30 P2PKH uncompressed
+    [b'\x1f', b'\x20', b'\x21', b'\x22'],  # 31 - 34 P2PKH compressed
+    [b'\x23', b'\x24', b'\x25', b'\x26'],  # 35 - 38 P2WPKH-P2SH compressed (BIP-137)
+    [b'\x27', b'\x28', b'\x29', b'\x2a'],  # 39 - 42 P2WPKH compressed (BIP-137)
+    [b'\x2b', b'\x2c', b'\x2d', b'\x2e'],  # TODO 43 - 46 P2TR
+]
 
 
 def double_sha256(b: bytes) -> bytes:
+    """
+    Calculate the double SHA-256 hash of the input bytes.
+
+    Args:
+        b (bytes): The input bytes to be hashed.
+
+    Returns:
+        bytes: The double SHA-256 hash of the input bytes.
+    """
     return sha256(sha256(b).digest()).digest()
 
 
 def ripemd160_sha256(b: bytes) -> bytes:
+    """
+    Calculate the RIPEMD160 hash of the SHA256 hash of the input bytes.
+
+    Args:
+        b (bytes): The input bytes to be hashed.
+
+    Returns:
+        bytes: The RIPEMD160 hash of the SHA256 hash of the input bytes.
+    """
     return ripemd160(sha256(b).digest())
 
 
 def is_odd(n: int) -> int:
+    """
+    Check if the given integer is odd.
+
+    Args:
+        n (int): The integer to be checked.
+
+    Returns:
+        int: 1 if the integer is odd, 0 if the integer is even.
+    """
     return n & 1
 
 
 def mod_inverse(n: int, /, mod: int) -> int:
+    """
+    Calculate the modular multiplicative inverse of a number.
+
+    Args:
+        n (int): The number for which the modular inverse is to be calculated.
+        mod (int): The modulo value.
+
+    Returns:
+        int: The modular multiplicative inverse of the input number n.
+    """
     return pow(n, -1, mod)
 
 
@@ -310,9 +368,15 @@ def to_jacobian(p: Point, /) -> JacobianPoint:
 def valid_point(p: Point | tuple[int, int], /) -> bool:
     """Check if a given point belongs to secp256k1 elliptic curve"""
     try:
-        return (all(isinstance(i, int) for i in p) and
-                pow(p[1], 2) % secp256k1.p_curve == (pow(p[0], 3) + secp256k1.b_curve) % secp256k1.p_curve)
-    except (TypeError, IndexError):  # Exception is raised when given arguments are invalid (non-integers)
+        return (
+            all(isinstance(i, int) for i in p)
+            and pow(p[1], 2) % secp256k1.p_curve
+            == (pow(p[0], 3) + secp256k1.b_curve) % secp256k1.p_curve
+        )
+    except (
+        TypeError,
+        IndexError,
+    ):  # Exception is raised when given arguments are invalid (non-integers)
         return False  # which also means point is not on curve
 
 
@@ -322,6 +386,17 @@ def valid_key(scalar: int, /) -> bool:
 
 
 def valid_checksum(version: bytes, privkey: bytes, checksum: bytes, /) -> bool:
+    """
+    Check if the provided checksum is valid for the given version, private key, and checksum bytes.
+
+    Args:
+        version (bytes): The version bytes.
+        privkey (bytes): The private key bytes.
+        checksum (bytes): The checksum bytes.
+
+    Returns:
+        bool: True if the checksum is valid, False otherwise.
+    """
     return double_sha256(version + privkey)[:4] == checksum
 
 
@@ -355,9 +430,11 @@ def to_int(wif: str, /) -> tuple[int, bool]:
 
 
 def ec_dbl(q: JacobianPoint, /) -> JacobianPoint:
-    # Fast Prime Field Elliptic Curve Cryptography with 256 Bit Primes
-    # Shay Gueron, Vlad Krasnov
-    # https://eprint.iacr.org/2013/816.pdf page 4
+    """
+    Fast Prime Field Elliptic Curve Cryptography with 256 Bit Primes
+    Shay Gueron, Vlad Krasnov
+    https://eprint.iacr.org/2013/816.pdf page 4
+    """
     if q.x == secp256k1.p_curve:
         return q
     Y2 = q.y * q.y
@@ -370,9 +447,11 @@ def ec_dbl(q: JacobianPoint, /) -> JacobianPoint:
 
 
 def ec_add(p: JacobianPoint, q: JacobianPoint, /) -> JacobianPoint:
-    # Fast Prime Field Elliptic Curve Cryptography with 256 Bit Primes
-    # Shay Gueron, Vlad Krasnov
-    # https://eprint.iacr.org/2013/816.pdf page 4
+    """
+    Fast Prime Field Elliptic Curve Cryptography with 256 Bit Primes
+    Shay Gueron, Vlad Krasnov
+    https://eprint.iacr.org/2013/816.pdf page 4
+    """
     if p.x == secp256k1.p_curve:
         return q
     if q.x == secp256k1.p_curve:
@@ -402,6 +481,11 @@ def ec_add(p: JacobianPoint, q: JacobianPoint, /) -> JacobianPoint:
 
 
 def get_precomputes() -> None:
+    """
+    This function calculates precomputes for the secp256k1 gen_point
+    by performing 256 iterations of elliptic curve doubling.
+    It does not take any parameters and does not return anything.
+    """
     dbl: JacobianPoint = secp256k1.gen_point
     for _ in range(256):
         precomputes.append(dbl)
@@ -409,6 +493,16 @@ def get_precomputes() -> None:
 
 
 def ec_mul(scalar: int, point: Point | JacobianPoint | None = None, /) -> JacobianPoint:
+    """
+    Multiply a scalar by a point in the context of elliptic curve cryptography.
+
+    Args:
+        scalar (int): The scalar to be multiplied.
+        point (Point | JacobianPoint | None, optional): The point to be multiplied. Defaults to None.
+
+    Returns:
+        JacobianPoint: The result of the multiplication.
+    """
     # https://paulmillr.com/posts/noble-secp256k1-fast-ecc/#fighting-timing-attacks
     n = scalar
     p = IDENTITY_POINT
@@ -437,7 +531,7 @@ def ec_mul(scalar: int, point: Point | JacobianPoint | None = None, /) -> Jacobi
     return JacobianPoint(p.x, p.y, p.z)
 
 
-def create_raw_pubkey(privkey) -> Point:
+def create_raw_pubkey(privkey: int) -> Point:
     raw_pubkey = to_affine(ec_mul(privkey))
     if not valid_point(raw_pubkey):
         raise PointError('Point is not on curve')
@@ -445,6 +539,17 @@ def create_raw_pubkey(privkey) -> Point:
 
 
 def create_pubkey(raw_pubkey: Point, /, *, uncompressed: bool = False) -> bytes:
+    """
+    Create a public key from the given raw public key, with the option to return it in uncompressed format.
+
+    Args:
+        raw_pubkey (Point): The raw public key.
+        uncompressed (bool, optional): Flag to indicate whether the public key should be returned in
+        uncompressed format. Defaults to False.
+
+    Returns:
+        bytes: The generated public key.
+    """
     if uncompressed:
         return b'\x04' + raw_pubkey.x.to_bytes(32, 'big') + raw_pubkey.y.to_bytes(32, 'big')
     prefix = b'\x03' if is_odd(raw_pubkey.y) else b'\x02'
@@ -452,20 +557,52 @@ def create_pubkey(raw_pubkey: Point, /, *, uncompressed: bool = False) -> bytes:
 
 
 def create_address(pubkey: bytes, /) -> str:
+    """
+    Create an address from a public key.
+
+    Args:
+        pubkey (bytes): The public key bytes.
+
+    Returns:
+        str: The generated address.
+    """
     address = b'\x00' + ripemd160_sha256(pubkey)
     return base58.b58encode_check(address).decode('UTF-8')
 
 
 def create_nested_segwit(pubkey: bytes, /) -> str:
+    """
+    Create a Nested SegWit address from a public key.
+
+    Parameters:
+    - pubkey: bytes, the public key
+
+    Returns:
+    - str, the nested SegWit address
+    """
     address = b'\x05' + ripemd160_sha256(b'\x00\x14' + ripemd160_sha256(pubkey))
     return base58.b58encode_check(address).decode('UTF-8')
 
 
 def create_native_segwit(pubkey: bytes, /) -> str:
+    """
+    Create a Native SegWit address from a public key.
+
+    Args:
+        pubkey (bytes): The public key to encode.
+
+    Returns:
+        str: The Native SegWit address.
+    """
     return bech32.encode('bc', 0x00, ripemd160_sha256(pubkey))
 
 
 def varint(length: int) -> bytes:
+    """
+    A function that encodes an integer into a variable-length format according to the Bitcoin protocol.
+    It takes an integer length as input and returns the encoded bytes.
+    The input length is used to determine the appropriate encoding format, and the function returns the encoded bytes.
+    """
     # https://en.bitcoin.it/wiki/Protocol_documentation#Variable_length_integer
     if length < 0xFD:
         return length.to_bytes(1, 'little')
@@ -480,6 +617,13 @@ def varint(length: int) -> bytes:
 
 
 def msg_magic(msg: str) -> bytes:
+    """
+    A function that takes a string message as input and returns the message encoded in bytes.
+    Parameters:
+    - msg: a string message to be encoded
+    Return type:
+    - bytes: the encoded message
+    """
     message = msg.encode('utf-8')
     return b'\x18Bitcoin Signed Message:\n' + varint(len(message)) + message
 
@@ -504,7 +648,7 @@ def signed(privkey: int, msg: int, k: int) -> Signature | None:
     # when working with private keys, standard multiplication is used
     point = to_affine(ec_mul(k))
     r = point.x % secp256k1.n_curve
-    if r == 0 or point == IDENTITY_POINT:
+    if r == 0 or to_jacobian(point) == IDENTITY_POINT:
         return None
     s = mod_inverse(k, secp256k1.n_curve) * (msg + privkey * r) % secp256k1.n_curve
     if s == 0:
@@ -514,7 +658,17 @@ def signed(privkey: int, msg: int, k: int) -> Signature | None:
     return Signature(r, s)
 
 
-def bits_to_int(b: bytes, qlen: int):
+def bits_to_int(b: bytes, qlen: int) -> int:
+    """
+    Convert the given bits in bytes to an integer value.
+
+    Args:
+        b (bytes): The input bytes containing the bits to be converted.
+        qlen (int): The length of the field for which the bits are being converted.
+
+    Returns:
+        int: The integer value converted from the input bits.
+    """
     # https://www.rfc-editor.org/rfc/rfc6979 section 2.3.2.
     blen = len(b) << 3
     b_int = int.from_bytes(b, 'big')
@@ -524,17 +678,39 @@ def bits_to_int(b: bytes, qlen: int):
 
 
 def int_to_oct(x: int, rolen: int) -> bytes:
+    """
+    Convert an integer to an octet string.
+
+    Args:
+        x (int): The integer to be converted.
+        rolen (int): The length of the resulting octet string.
+
+    Returns:
+        bytes: The octet string resulting from the conversion.
+    """
     # https://www.rfc-editor.org/rfc/rfc6979 section 2.3.3.
     xolen = x.bit_length() >> 3
     x_hex = f'{x:x}'
     if xolen < rolen:
         x_hex = f'{x:0>{rolen << 1}x}'
     elif xolen > rolen:
-        x_hex = x_hex[xolen - rolen << 1:]
+        x_hex = x_hex[xolen - rolen << 1 :]
     return bytes.fromhex(x_hex)
 
 
 def bits_to_oct(b: bytes, q: int, qlen: int, rolen: int) -> bytes:
+    """
+    Convert a byte string to an octet string using the specified parameters.
+
+    Args:
+        b (bytes): The input byte string.
+        q (int): The parameter q.
+        qlen (int): The length of q.
+        rolen (int): The length of the octet string.
+
+    Returns:
+        bytes: The resulting octet string.
+    """
     # https://www.rfc-editor.org/rfc/rfc6979 section 2.3.4.
     z1 = bits_to_int(b, qlen)
     z2 = z1 - q
@@ -544,6 +720,17 @@ def bits_to_oct(b: bytes, q: int, qlen: int, rolen: int) -> bytes:
 
 
 def rfc_sign(x: int, msg: int, q: int) -> Signature:
+    """
+    Function to generate a signature according to RFC 6979 using the provided parameters.
+
+    Args:
+        x (int): The private key.
+        msg (int): The message to be signed.
+        q (int): The order of the base point in the elliptic curve group.
+
+    Returns:
+        Signature: The generated signature.
+    """
     # https://www.rfc-editor.org/rfc/rfc6979 section 3.2.
     qlen = q.bit_length()
     qolen = qlen >> 3
@@ -585,6 +772,16 @@ def rfc_sign(x: int, msg: int, q: int) -> Signature:
 
 
 def sign(privkey: int, msg: int, /) -> Signature:
+    """
+    A function that signs a message using the provided private key and returns the signature.
+
+    Args:
+        privkey (int): The private key used for signing.
+        msg (int): The message to be signed.
+
+    Returns:
+        Signature: The signature of the message.
+    """
     # https://learnmeabitcoin.com/technical/ecdsa#sign
     while True:
         k = generate()
@@ -619,26 +816,35 @@ def derive_address(pubkey: bytes, addr_type: str) -> tuple[str, int]:
     else:
         raise SignatureError('Invalid address type')
 
+
 # ################################ public interface starts here #################################
 
 
-def sign_message(wif: str, addr_type: str, message: str, /, *, deterministic=False, electrum=False) -> tuple[str, ...]:
+def sign_message(
+    wif: str,
+    addr_type: str,
+    message: str,
+    /,
+    *,
+    deterministic: bool = False,
+    electrum: bool = False,
+) -> tuple[str, ...]:
     """
     Sign message with private key (WIF) and specified address type
 
     Args:
 
-    wif - private key in compressed or uncompressed format. 
+    wif - private key in compressed or uncompressed format.
     Compressed private key will produce compressed public key and address.
     Uncompressed private key will only produce one address type - uncompressed legacy address
 
-    addr_type - specify which address type you want to use to produce signature. 
+    addr_type - specify which address type you want to use to produce signature.
     It can be either p2pkh (compressed and uncompressed), p2wpkh-p2sh or p2wpkh (only compressed).
 
     message - string that will be used for signing
 
     deterministic - if you want your signatures be produced deterministically, set this flag to True,
-    and each unique combination of private key and message will yield only one signature 
+    and each unique combination of private key and message will yield only one signature
 
     electrum - if set to True segwit addresses will produce signatures with Legacy headers
 
@@ -666,6 +872,17 @@ def sign_message(wif: str, addr_type: str, message: str, /, *, deterministic=Fal
 
 
 def bitcoin_message(address: str, message: str, signature: str, /) -> None:
+    """
+    A function to print a Bitcoin message, signature, and address.
+
+    Args:
+        address (str): the Bitcoin address
+        message (str): the message to be printed
+        signature (str): the signature for the message
+
+    Returns:
+        None
+    """
     print('-----BEGIN BITCOIN SIGNED MESSAGE-----')
     print(f'{message}')
     print('-----BEGIN BITCOIN SIGNATURE-----')
@@ -675,8 +892,22 @@ def bitcoin_message(address: str, message: str, signature: str, /) -> None:
     print('-----END BITCOIN SIGNATURE-----')
 
 
-def verify_message(address: str, message: str, signature: str, /, *, electrum=False) -> tuple[bool, str, str]:
-    """ Verify signature with address and message """
+def verify_message(
+    address: str, message: str, signature: str, /, *, electrum: bool = False
+) -> tuple[bool, str, str]:
+    """
+    Verifies a message signature using the given address, message, and signature.
+
+    Args:
+        address (str): The address used to sign the message.
+        message (str): The message that was signed.
+        signature (str): The signature to verify.
+        electrum (bool, optional): Whether to use Electrum format. Defaults to False.
+
+    Returns:
+        tuple[bool, str, str]: A tuple containing a boolean indicating verification success,
+        the public key, and a message string.
+    """
     try:
         dsig = base64.b64decode(signature)
     except Exception as error:
@@ -737,71 +968,51 @@ def verify_message(address: str, message: str, signature: str, /, *, electrum=Fa
     return False, pubkey.hex(), 'Message failed to verify'
 
 
-def main():
+def main() -> None:
     parser = argparse.ArgumentParser(
-        prog='python3 <application>',
-        description='Bitcoin message signing/verification tool')
+        prog='python3 <application>', description='Bitcoin message signing/verification tool'
+    )
     subparsers = parser.add_subparsers()
     sign_parser = subparsers.add_parser('sign')
     sign_parser.set_defaults(cmd='sign')
     sign_group = sign_parser.add_argument_group(title='Sign messsage')
-    sign_group.add_argument('-p',
-                            '--privkey',
-                            action=PrivateKey,
-                            dest='privkey',
-                            nargs=0,
-                            required=True,
-                            help='private key in wallet import format (WIF)')
-    sign_group.add_argument('-a',
-                            '--addr_type',
-                            required=True,
-                            choices=['p2pkh', 'p2wpkh-p2sh', 'p2wpkh'],
-                            help='type of bitcoin address')
-    sign_group.add_argument('-m',
-                            '--message',
-                            nargs='*',
-                            required=True,
-                            help='Message to sign')
-    sign_group.add_argument('-d',
-                            '--deterministic',
-                            action='store_true',
-                            help='sign deterministtically (RFC6979)')
-    sign_group.add_argument('-e',
-                            '--electrum',
-                            action='store_true',
-                            help='create Electrum-like signature')
-    sign_group.add_argument('-v',
-                            '--verbose',
-                            action='store_true',
-                            help='print prettified message')
+    sign_group.add_argument(
+        '-p',
+        '--privkey',
+        action=PrivateKey,
+        dest='privkey',
+        nargs=0,
+        required=True,
+        help='private key in wallet import format (WIF)',
+    )
+    sign_group.add_argument(
+        '-a',
+        '--addr_type',
+        required=True,
+        choices=['p2pkh', 'p2wpkh-p2sh', 'p2wpkh'],
+        help='type of bitcoin address',
+    )
+    sign_group.add_argument('-m', '--message', nargs='*', required=True, help='Message to sign')
+    sign_group.add_argument(
+        '-d', '--deterministic', action='store_true', help='sign deterministtically (RFC6979)'
+    )
+    sign_group.add_argument(
+        '-e', '--electrum', action='store_true', help='create Electrum-like signature'
+    )
+    sign_group.add_argument('-v', '--verbose', action='store_true', help='print prettified message')
     verify_parser = subparsers.add_parser('verify')
     verify_parser.set_defaults(cmd='verify')
     verify_group = verify_parser.add_argument_group(title='Verify messsage')
-    verify_group.add_argument('-a',
-                              '--address',
-                              required=True,
-                              help='specify bitcoin address')
-    verify_group.add_argument('-m',
-                              '--message',
-                              nargs='*',
-                              required=True,
-                              help='Message to verify')
-    verify_group.add_argument('-s',
-                              '--signature',
-                              required=True,
-                              help='bitcoin signature in base64 format')
-    verify_group.add_argument('-e',
-                              '--electrum',
-                              action='store_true',
-                              help='verify Electrum-like signature')
-    verify_group.add_argument('-v',
-                              '--verbose',
-                              action='store_true',
-                              help='print full message')
-    verify_group.add_argument('-r',
-                              '--recpub',
-                              action='store_true',
-                              help='recover public key')
+    verify_group.add_argument('-a', '--address', required=True, help='specify bitcoin address')
+    verify_group.add_argument('-m', '--message', nargs='*', required=True, help='Message to verify')
+    verify_group.add_argument(
+        '-s', '--signature', required=True, help='bitcoin signature in base64 format'
+    )
+    verify_group.add_argument(
+        '-e', '--electrum', action='store_true', help='verify Electrum-like signature'
+    )
+    verify_group.add_argument('-v', '--verbose', action='store_true', help='print full message')
+    verify_group.add_argument('-r', '--recpub', action='store_true', help='recover public key')
 
     args = parser.parse_args()
 
@@ -812,23 +1023,24 @@ def main():
     message = ' '.join(word for word in args.message)
     if args.cmd == 'sign':
         privkey = args.privkey
-        result = sign_message(privkey,
-                              args.addr_type,
-                              message,
-                              deterministic=args.deterministic,
-                              electrum=args.electrum)
+        sign_result = sign_message(
+            privkey,
+            args.addr_type,
+            message,
+            deterministic=args.deterministic,
+            electrum=args.electrum,
+        )
         if args.verbose:
-            bitcoin_message(*result)
+            bitcoin_message(*sign_result)
         else:
-            print('Bitcoin address: {}\nMessage: {}\nSignature: {}'.format(*result))
+            print('Bitcoin address: {}\nMessage: {}\nSignature: {}'.format(*sign_result))
     elif args.cmd == 'verify':
-        verified, pubkey, result = verify_message(args.address,
-                                                  message,
-                                                  args.signature,
-                                                  electrum=args.electrum)
+        verified, pubkey, verify_result = verify_message(
+            args.address, message, args.signature, electrum=args.electrum
+        )
         print(verified)
         if args.verbose:
-            print(result)
+            print(verify_result)
         if args.recpub:
             print(pubkey)
 
